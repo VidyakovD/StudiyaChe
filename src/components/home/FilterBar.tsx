@@ -43,7 +43,7 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
           placeholder="Поиск курсов..."
           value={search}
           onChange={(e) => handleSearchChange(e.target.value)}
-          className="input-dark pl-12 pr-4"
+          className="input-dark !pl-12 pr-4"
         />
       </div>
 

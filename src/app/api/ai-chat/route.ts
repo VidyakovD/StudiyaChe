@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// Allow self-signed SSL on proxy server
+if (process.env.OPENAI_BASE_URL && process.env.OPENAI_BASE_URL.includes("8443")) {
+  process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+}
+
 const SYSTEM_PROMPT = `Ты — ИИ-ассистент обучающей платформы "Студия ЧЕ". Тебя зовут "ЧЕ Ассистент".
 
 ТВОЯ РОЛЬ: Ты эксперт-консультант по видеопроизводству и ИИ-инструментам. Помогаешь пользователям выбрать курс, отвечаешь на вопросы по теме, мотивируешь учиться.

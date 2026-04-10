@@ -85,7 +85,7 @@ export default function RegisterPage() {
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Ваше имя"
                     required
-                    className="input-dark pl-12"
+                    className="input-dark !pl-12"
                   />
                 </div>
               </div>
@@ -100,7 +100,7 @@ export default function RegisterPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="your@email.com"
                     required
-                    className="input-dark pl-12"
+                    className="input-dark !pl-12"
                   />
                 </div>
               </div>
@@ -116,7 +116,7 @@ export default function RegisterPage() {
                     placeholder="Минимум 6 символов"
                     required
                     minLength={6}
-                    className="input-dark pl-12 pr-12"
+                    className="input-dark !pl-12 !pr-12"
                   />
                   <button
                     type="button"

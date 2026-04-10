@@ -94,6 +94,13 @@ model LessonProgress {
   @@unique([userId, lessonId])
 }
 
+model SiteSettings {
+  id        String   @id @default("main")
+  key       String   @unique
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
 model ChatMessage {
   id        String   @id @default(cuid())
   courseId   String

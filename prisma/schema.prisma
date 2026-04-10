@@ -101,6 +101,7 @@ model ChatMessage {
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   text      String
+  imageUrl  String?
   createdAt DateTime @default(now())
 
   @@index([courseId, createdAt])

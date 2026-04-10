@@ -70,11 +70,11 @@ export async function POST(
       );
     }
 
-    const { text } = await req.json();
+    const { text, imageUrl } = await req.json();
 
-    if (!text || typeof text !== "string" || text.trim().length === 0) {
+    if ((!text || typeof text !== "string" || text.trim().length === 0) && !imageUrl) {
       return NextResponse.json(
-        { error: "Текст сообщения обязателен" },
+        { error: "Текст или изображение обязательны" },
         { status: 400 }
       );
     }
@@ -83,7 +83,8 @@ export async function POST(
       data: {
         courseId,
         userId: session.user.id,
-        text: text.trim(),
+        text: text?.trim() || "",
+        imageUrl: imageUrl || null,
       },
       include: {
         user: {

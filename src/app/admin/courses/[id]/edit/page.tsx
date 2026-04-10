@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Save, Plus, Trash2, ArrowLeft, GripVertical } from "lucide-react";
+import { Save, Plus, Trash2, ArrowLeft, GripVertical, Upload, Loader2 } from "lucide-react";
 import Header from "@/components/layout/Header";
 
 interface Lesson {
@@ -209,14 +209,39 @@ export default function EditCoursePage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm text-text-secondary mb-2">URL изображения</label>
-                  <input
-                    type="text"
-                    value={form.imageUrl}
-                    onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                    className="input-dark"
-                    placeholder="https://..."
-                  />
+                  <label className="block text-sm text-text-secondary mb-2">Обложка курса</label>
+                  <div className="flex gap-3 items-start">
+                    {form.imageUrl && (
+                      <img src={form.imageUrl} alt="Превью" className="w-24 h-16 object-cover rounded-lg border border-border-default" />
+                    )}
+                    <div className="flex-1 space-y-2">
+                      <label className="flex items-center gap-2 px-4 py-2 rounded-xl bg-accent/10 text-accent border border-accent/20 text-sm font-medium cursor-pointer hover:bg-accent/15 transition-colors w-fit">
+                        <Upload className="w-4 h-4" />
+                        Загрузить картинку
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            const fd = new FormData();
+                            fd.append("file", file);
+                            const res = await fetch("/api/upload", { method: "POST", body: fd });
+                            const data = await res.json();
+                            if (data.url) setForm({ ...form, imageUrl: data.url });
+                          }}
+                        />
+                      </label>
+                      <input
+                        type="text"
+                        value={form.imageUrl}
+                        onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
+                        className="input-dark"
+                        placeholder="или вставьте URL..."
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div>

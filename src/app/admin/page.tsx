@@ -189,7 +189,7 @@ export default function AdminPage() {
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-xl font-bold text-text-primary">Все курсы</h2>
                 <a
-                  href="/admin/courses/new"
+                  href="/admin/courses/new/edit"
                   className="btn-primary flex items-center gap-2 text-sm"
                 >
                   <span className="relative z-10 flex items-center gap-2">

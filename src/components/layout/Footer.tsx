@@ -36,11 +36,11 @@ export default function Footer() {
           <div>
             <h3 className="text-text-primary font-semibold mb-4">Документы</h3>
             <div className="space-y-2">
-              <p className="text-text-muted text-sm">ИНН: 000000000000</p>
-              <a href="#" className="block text-text-muted hover:text-accent transition-colors text-sm">
+              <p className="text-text-muted text-sm">ИП Видяков Д.К.</p>
+              <a href="/offer" className="block text-text-muted hover:text-accent transition-colors text-sm">
                 Договор оферты
               </a>
-              <a href="#" className="block text-text-muted hover:text-accent transition-colors text-sm">
+              <a href="/privacy" className="block text-text-muted hover:text-accent transition-colors text-sm">
                 Политика конфиденциальности
               </a>
             </div>

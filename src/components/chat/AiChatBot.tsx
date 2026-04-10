@@ -19,6 +19,7 @@ const QUICK_REPLIES = [
 
 export default function AiChatBot() {
   const [isOpen, setIsOpen] = useState(false);
+  const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 0,
@@ -43,6 +44,26 @@ export default function AiChatBot() {
     if (isOpen) inputRef.current?.focus();
   }, [isOpen]);
 
+  // Отправить событие "end" когда пользователь закрывает чат после диалога
+  const handleClose = () => {
+    setIsOpen(false);
+    // Если был хотя бы 1 пользовательский вопрос — отправить "end"
+    const hasDialog = messages.some((m) => m.role === "user");
+    if (hasDialog) {
+      const apiMessages = messages
+        .filter((m) => m.id !== 0)
+        .map((m) => ({
+          role: m.role === "user" ? ("user" as const) : ("assistant" as const),
+          content: m.text,
+        }));
+      fetch("/api/ai-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: apiMessages, sessionId, event: "end" }),
+      }).catch(() => {});
+    }
+  };
+
   const sendMessage = async (text: string) => {
     if (!text.trim()) return;
 
@@ -64,7 +85,7 @@ export default function AiChatBot() {
       const res = await fetch("/api/ai-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMessages }),
+        body: JSON.stringify({ messages: apiMessages, sessionId, event: "message" }),
       });
 
       const data = await res.json();
@@ -126,7 +147,7 @@ export default function AiChatBot() {
                 </div>
               </div>
               <button
-                onClick={() => setIsOpen(false)}
+                onClick={handleClose}
                 className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-white/5 transition-colors"
               >
                 <X className="w-4 h-4" />
@@ -232,7 +253,7 @@ export default function AiChatBot() {
 
       {/* Toggle button */}
       <motion.button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => isOpen ? handleClose() : setIsOpen(true)}
         className="w-14 h-14 rounded-full flex items-center justify-center text-white relative"
         style={{
           background: "linear-gradient(135deg, var(--accent), var(--neon-purple))",

@@ -143,19 +143,33 @@ export default function CoursePage() {
                   <div className="card-glow" />
                   <div className="relative z-10">
                     {/* Video preview */}
-                    <div className="relative h-44 bg-bg-secondary rounded-xl overflow-hidden mb-6">
-                      {course.imageUrl ? (
-                        <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover" />
+                    <div className="relative bg-bg-secondary rounded-xl overflow-hidden mb-6">
+                      {course.videoUrl && course.videoUrl.includes("kinescope.io") ? (
+                        <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
+                          <iframe
+                            src={course.videoUrl}
+                            className="absolute inset-0 w-full h-full rounded-xl"
+                            allow="autoplay; fullscreen; picture-in-picture; encrypted-media; screen-wake-lock"
+                            allowFullScreen
+                            style={{ border: "none" }}
+                          />
+                        </div>
+                      ) : course.imageUrl ? (
+                        <div className="relative h-44">
+                          <img src={course.imageUrl} alt={course.title} className="w-full h-full object-cover" />
+                          {course.videoUrl && (
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="w-14 h-14 rounded-full bg-accent/90 flex items-center justify-center neon-glow cursor-pointer hover:scale-110 transition-transform">
+                                <Play className="w-6 h-6 text-white ml-1" fill="white" />
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center">
+                        <div className="h-44 flex items-center justify-center">
                           <Play className="w-12 h-12 text-accent/30" />
                         </div>
                       )}
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-14 h-14 rounded-full bg-accent/90 flex items-center justify-center neon-glow cursor-pointer hover:scale-110 transition-transform">
-                          <Play className="w-6 h-6 text-white ml-1" fill="white" />
-                        </div>
-                      </div>
                     </div>
 
                     <div className="text-3xl font-bold text-accent mb-6 neon-text">

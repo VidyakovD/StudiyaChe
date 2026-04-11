@@ -74,10 +74,17 @@ body {
     0 0 15px rgba(255, 107, 43, 0.05);
 }
 
-/* ===== GRADIENT BORDERS ===== */
+/* ===== GRADIENT BORDERS (animated) ===== */
+@keyframes border-rotate {
+  0% { --border-angle: 0deg; }
+  100% { --border-angle: 360deg; }
+}
+
 .gradient-border {
   position: relative;
-  background: var(--bg-card);
+  background: rgba(22, 22, 31, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-radius: 16px;
   overflow: hidden;
 }
@@ -88,10 +95,17 @@ body {
   inset: 0;
   padding: 1px;
   border-radius: 16px;
-  background: linear-gradient(135deg, rgba(255, 107, 43, 0.3), transparent 50%, rgba(168, 85, 247, 0.3));
+  background: linear-gradient(135deg, rgba(255, 107, 43, 0.25), transparent 40%, rgba(168, 85, 247, 0.2), transparent 60%, rgba(255, 107, 43, 0.15));
   mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
   mask-composite: exclude;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
   pointer-events: none;
+}
+
+.gradient-border:hover::before {
+  background: linear-gradient(135deg, rgba(255, 107, 43, 0.4), transparent 35%, rgba(168, 85, 247, 0.35), transparent 65%, rgba(255, 107, 43, 0.3));
+  transition: background 0.5s ease;
 }
 
 /* ===== ANIMATIONS ===== */
@@ -144,14 +158,14 @@ body {
 
 /* ===== CARD HOVER EFFECTS ===== */
 .card-hover {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card-hover:hover {
-  transform: translateY(-4px);
+  transform: translateY(-6px) scale(1.01);
   box-shadow:
-    0 0 20px rgba(255, 107, 43, 0.15),
-    0 20px 40px rgba(0, 0, 0, 0.4);
+    0 0 30px rgba(255, 107, 43, 0.12),
+    0 25px 50px rgba(0, 0, 0, 0.4);
 }
 
 .card-hover:hover .card-glow {
@@ -160,12 +174,13 @@ body {
 
 .card-glow {
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.5s ease;
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 0%, rgba(255, 107, 43, 0.08), transparent 70%);
+  background: radial-gradient(ellipse at 50% 0%, rgba(255, 107, 43, 0.1), transparent 60%);
   pointer-events: none;
   border-radius: inherit;
+  z-index: 1;
 }
 
 /* ===== BUTTON STYLES ===== */
@@ -205,17 +220,35 @@ body {
   z-index: 1;
 }
 
-/* ===== GLASSMORPHISM ===== */
+/* ===== GLASSMORPHISM (iPhone-style) ===== */
 .glass {
-  background: rgba(17, 17, 24, 0.8);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(17, 17, 24, 0.6);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .glass-strong {
-  background: rgba(17, 17, 24, 0.95);
-  backdrop-filter: blur(30px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(17, 17, 24, 0.75);
+  backdrop-filter: blur(40px) saturate(200%);
+  -webkit-backdrop-filter: blur(40px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.glass-card {
+  background: rgba(22, 22, 31, 0.5);
+  backdrop-filter: blur(20px) saturate(150%);
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 16px;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  background: rgba(22, 22, 31, 0.7);
+  border-color: rgba(255, 107, 43, 0.15);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 107, 43, 0.05);
 }
 
 /* ===== PARTICLES BACKGROUND ===== */

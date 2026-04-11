@@ -269,7 +269,7 @@ export default function CoursePage() {
                   </div>
                 ));
 
-                function renderLesson(lesson: typeof course.lessons[0], idx: number) {
+                function renderLesson(lesson: { id: string; title: string; order: number; description: string | null; moduleId: string | null }, idx: number) {
                   return (
                     <motion.div
                       key={lesson.id}

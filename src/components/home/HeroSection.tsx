@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useSession } from "next-auth/react";
 
 const stagger = {
   hidden: {},
@@ -27,6 +28,8 @@ const scaleIn = {
 };
 
 export default function HeroSection() {
+  const { data: session } = useSession();
+
   return (
     <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
       {/* Background gradient orbs — animated */}
@@ -111,12 +114,12 @@ export default function HeroSection() {
             </svg>
           </motion.a>
           <motion.a
-            href="/auth/register"
+            href={session ? "/cabinet" : "/auth/register"}
             className="px-8 py-4 rounded-xl text-text-secondary hover:text-text-primary transition-all duration-300 text-lg glass-card"
             whileHover={{ scale: 1.05, y: -2 }}
             whileTap={{ scale: 0.97 }}
           >
-            Создать аккаунт
+            {session ? "Личный кабинет" : "Создать аккаунт"}
           </motion.a>
         </motion.div>
 

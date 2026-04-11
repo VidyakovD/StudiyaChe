@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { UserPlus, Mail, Lock, User, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { fadeInUp, staggerContainer, easing } from "@/hooks/useAnimations";
+import NeuralNetwork from "@/components/home/NeuralNetwork";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -44,20 +45,22 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-bg-primary relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
+      <NeuralNetwork />
+      <div className="absolute inset-0 bg-bg-primary/60 backdrop-blur-md z-[1]" />
       <motion.div
-        className="absolute top-1/3 right-1/3 w-[400px] h-[400px] rounded-full bg-neon-purple/5 blur-[120px]"
+        className="absolute top-1/3 right-1/3 w-[400px] h-[400px] rounded-full bg-neon-purple/5 blur-[120px] z-[2]"
         animate={{ scale: [1, 1.15, 1], opacity: [0.3, 0.5, 0.3] }}
         transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
       />
       <motion.div
-        className="absolute bottom-1/3 left-1/3 w-[300px] h-[300px] rounded-full bg-accent/5 blur-[100px]"
+        className="absolute bottom-1/3 left-1/3 w-[300px] h-[300px] rounded-full bg-accent/5 blur-[100px] z-[2]"
         animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.4, 0.2] }}
         transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
       />
 
       <motion.div
-        className="w-full max-w-md mx-4"
+        className="w-full max-w-md mx-4 relative z-10"
         initial={{ opacity: 0, y: 24, filter: "blur(8px)" }}
         animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
         transition={{ duration: 0.6, ease: easing.outQuart }}

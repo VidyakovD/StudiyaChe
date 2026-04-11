@@ -6,6 +6,12 @@ import { motion } from "framer-motion";
 import { Save, Plus, Trash2, ArrowLeft, GripVertical, Upload, Loader2 } from "lucide-react";
 import Header from "@/components/layout/Header";
 
+interface ModuleItem {
+  id?: string;
+  title: string;
+  order: number;
+}
+
 interface Lesson {
   id?: string;
   title: string;
@@ -15,6 +21,7 @@ interface Lesson {
   order: number;
   links: string;
   homework: string;
+  moduleId: string;
 }
 
 interface CourseForm {
@@ -26,6 +33,7 @@ interface CourseForm {
   categoryId: string;
   recommendedCourseId: string;
   discountPercent: string;
+  modules: ModuleItem[];
   lessons: Lesson[];
 }
 
@@ -43,6 +51,7 @@ export default function EditCoursePage() {
     categoryId: "",
     recommendedCourseId: "",
     discountPercent: "",
+    modules: [],
     lessons: [],
   });
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
@@ -72,7 +81,8 @@ export default function EditCoursePage() {
               categoryId: data.course.categoryId,
               recommendedCourseId: data.course.recommendedCourseId || "",
               discountPercent: data.course.discountPercent ? String(data.course.discountPercent) : "",
-              lessons: data.course.lessons || [],
+              modules: data.course.modules || [],
+              lessons: (data.course.lessons || []).map((l: Record<string, unknown>) => ({ ...l, moduleId: l.moduleId || "" })),
             });
           }
         });
@@ -92,6 +102,7 @@ export default function EditCoursePage() {
           order: form.lessons.length + 1,
           links: "",
           homework: "",
+          moduleId: "",
         },
       ],
     });
@@ -289,6 +300,63 @@ export default function EditCoursePage() {
               </div>
             </div>
 
+            {/* Modules */}
+            <div className="gradient-border p-6">
+              <div className="relative z-10 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-bold text-text-primary">
+                    Модули ({form.modules.length})
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => setForm({
+                      ...form,
+                      modules: [...form.modules, { title: "", order: form.modules.length + 1 }],
+                    })}
+                    className="px-4 py-2 rounded-xl bg-neon-purple/10 text-neon-purple border border-neon-purple/20 text-sm font-medium hover:bg-neon-purple/15 transition-colors flex items-center gap-2"
+                  >
+                    <Plus className="w-4 h-4" />
+                    Добавить модуль
+                  </button>
+                </div>
+
+                {form.modules.length === 0 && (
+                  <p className="text-text-muted text-sm">Модули не обязательны. Без них уроки отображаются списком.</p>
+                )}
+
+                {form.modules.map((mod, idx) => (
+                  <div key={idx} className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-neon-purple/10 flex items-center justify-center shrink-0">
+                      <span className="text-neon-purple font-bold text-sm">{mod.order}</span>
+                    </div>
+                    <input
+                      type="text"
+                      value={mod.title}
+                      onChange={(e) => {
+                        const modules = [...form.modules];
+                        modules[idx] = { ...modules[idx], title: e.target.value };
+                        setForm({ ...form, modules });
+                      }}
+                      placeholder="Название модуля"
+                      className="input-dark flex-1"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const modules = form.modules.filter((_, i) => i !== idx).map((m, i) => ({ ...m, order: i + 1 }));
+                        const lessons = form.lessons.map((l) => l.moduleId === mod.id ? { ...l, moduleId: "" } : l);
+                        setForm({ ...form, modules, lessons });
+                      }}
+                      className="p-2 text-text-muted hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Lessons */}
             <div>
               <div className="flex items-center justify-between mb-4">
@@ -318,6 +386,20 @@ export default function EditCoursePage() {
                         <div className="flex items-center gap-2">
                           <GripVertical className="w-4 h-4 text-text-muted" />
                           <span className="text-accent font-bold">Урок {lesson.order}</span>
+                          {form.modules.length > 0 && (
+                            <select
+                              value={lesson.moduleId || ""}
+                              onChange={(e) => updateLesson(idx, "moduleId", e.target.value)}
+                              className="bg-bg-secondary border border-border-default rounded-lg px-2 py-1 text-xs text-neon-purple"
+                            >
+                              <option value="">Без модуля</option>
+                              {form.modules.map((m, mi) => (
+                                <option key={mi} value={m.id || `new-${mi}`}>
+                                  {m.title || `Модуль ${m.order}`}
+                                </option>
+                              ))}
+                            </select>
+                          )}
                         </div>
                         <button
                           type="button"

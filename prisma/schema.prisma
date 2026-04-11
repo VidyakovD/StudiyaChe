@@ -49,15 +49,29 @@ model Course {
   discountPercent     Int?
   createdAt           DateTime @default(now())
 
+  modules      Module[]
   lessons      Lesson[]
   purchases    Purchase[]
   chatMessages ChatMessage[]
+}
+
+model Module {
+  id       String   @id @default(cuid())
+  courseId  String
+  course   Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title    String
+  order    Int
+  lessons  Lesson[]
+
+  @@unique([courseId, order])
 }
 
 model Lesson {
   id          String  @id @default(cuid())
   courseId     String
   course       Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  moduleId     String?
+  module       Module?  @relation(fields: [moduleId], references: [id])
   title        String
   description  String?
   videoUrl     String?

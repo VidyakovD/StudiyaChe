@@ -16,7 +16,8 @@ interface Course {
   videoUrl: string | null;
   imageUrl: string | null;
   category: { name: string };
-  lessons: { id: string; title: string; order: number; description: string | null }[];
+  modules: { id: string; title: string; order: number }[];
+  lessons: { id: string; title: string; order: number; description: string | null; moduleId: string | null }[];
   recommendedCourseId: string | null;
   discountPercent: number | null;
 }
@@ -241,29 +242,59 @@ export default function CoursePage() {
             </h2>
 
             <div className="space-y-3">
-              {course.lessons.map((lesson, idx) => (
-                <motion.div
-                  key={lesson.id}
-                  className="gradient-border p-4 flex items-center gap-4"
-                  initial={{ opacity: 0, x: -20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 0.4, delay: idx * 0.05 }}
-                >
-                  <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
-                    <span className="text-accent font-bold text-sm">{lesson.order}</span>
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-text-primary font-medium truncate">{lesson.title}</h3>
-                    {lesson.description && (
-                      <p className="text-sm text-text-muted truncate">{lesson.description}</p>
+              {(() => {
+                const hasModules = course.modules && course.modules.length > 0;
+                if (!hasModules) {
+                  return course.lessons.map((lesson, idx) => renderLesson(lesson, idx));
+                }
+                const groups: { module: { id: string; title: string } | null; lessons: typeof course.lessons }[] = [];
+                const noModule = course.lessons.filter((l) => !l.moduleId);
+                if (noModule.length > 0) groups.push({ module: null, lessons: noModule });
+                for (const mod of course.modules) {
+                  const modLessons = course.lessons.filter((l) => l.moduleId === mod.id);
+                  if (modLessons.length > 0) groups.push({ module: mod, lessons: modLessons });
+                }
+                return groups.map((g, gi) => (
+                  <div key={gi} className="mb-6">
+                    {g.module && (
+                      <div className="flex items-center gap-3 mb-3 mt-4">
+                        <div className="w-8 h-8 rounded-lg bg-neon-purple/15 flex items-center justify-center">
+                          <span className="text-neon-purple font-bold text-sm">{gi + 1}</span>
+                        </div>
+                        <h3 className="text-lg font-semibold text-neon-purple">{g.module.title}</h3>
+                        <span className="text-xs text-text-muted">{g.lessons.length} уроков</span>
+                      </div>
                     )}
+                    {g.lessons.map((lesson, idx) => renderLesson(lesson, idx))}
                   </div>
-                  {!purchased && (
-                    <Lock className="w-4 h-4 text-text-muted shrink-0" />
-                  )}
-                </motion.div>
-              ))}
+                ));
+
+                function renderLesson(lesson: typeof course.lessons[0], idx: number) {
+                  return (
+                    <motion.div
+                      key={lesson.id}
+                      className="gradient-border p-4 flex items-center gap-4"
+                      initial={{ opacity: 0, x: -20 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      viewport={{ once: true }}
+                      transition={{ duration: 0.4, delay: idx * 0.05 }}
+                    >
+                      <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0">
+                        <span className="text-accent font-bold text-sm">{lesson.order}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="text-text-primary font-medium truncate">{lesson.title}</h3>
+                        {lesson.description && (
+                          <p className="text-sm text-text-muted truncate">{lesson.description}</p>
+                        )}
+                      </div>
+                      {!purchased && (
+                        <Lock className="w-4 h-4 text-text-muted shrink-0" />
+                      )}
+                    </motion.div>
+                  );
+                }
+              })()}
             </div>
           </div>
         </section>

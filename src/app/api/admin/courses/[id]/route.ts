@@ -16,6 +16,7 @@ export async function GET(
   const course = await prisma.course.findUnique({
     where: { id },
     include: {
+      modules: { orderBy: { order: "asc" } },
       lessons: { orderBy: { order: "asc" } },
       category: true,
     },
@@ -35,13 +36,32 @@ export async function PUT(
 
   const { id } = await params;
   const body = await req.json();
-  const { lessons, ...courseData } = body;
+  const { lessons, modules, ...courseData } = body;
 
   // Update course
   await prisma.course.update({
     where: { id },
     data: courseData,
   });
+
+  // Sync modules: delete old, create new
+  const moduleMap: Record<string, string> = {};
+  await prisma.lesson.updateMany({ where: { courseId: id }, data: { moduleId: null } });
+  await prisma.module.deleteMany({ where: { courseId: id } });
+  if (modules && modules.length > 0) {
+    for (let i = 0; i < modules.length; i++) {
+      const m = modules[i] as Record<string, unknown>;
+      const created = await prisma.module.create({
+        data: {
+          courseId: id,
+          title: (m.title as string) || `Модуль ${i + 1}`,
+          order: i + 1,
+        },
+      });
+      moduleMap[`new-${i}`] = created.id;
+      if (m.id) moduleMap[m.id as string] = created.id;
+    }
+  }
 
   // Sync lessons: delete progress, then old lessons, then create new
   if (lessons) {
@@ -60,6 +80,7 @@ export async function PUT(
         order: i + 1,
         links: (l.links as string) || null,
         homework: (l.homework as string) || null,
+        moduleId: l.moduleId ? (moduleMap[l.moduleId as string] || (l.moduleId as string)) : null,
       })),
     });
   }

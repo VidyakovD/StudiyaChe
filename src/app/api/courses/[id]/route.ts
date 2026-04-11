@@ -15,6 +15,7 @@ export async function GET(
     where: { id },
     include: {
       category: true,
+      modules: { orderBy: { order: "asc" } },
       lessons: { orderBy: { order: "asc" } },
     },
   });

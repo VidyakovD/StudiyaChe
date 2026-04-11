@@ -27,24 +27,44 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { lessons, ...courseData } = body;
+  const { lessons, modules, ...courseData } = body;
 
-  const course = await prisma.course.create({
-    data: {
-      ...courseData,
-      lessons: {
-        create: (lessons || []).map((l: Record<string, unknown>, i: number) => ({
-          title: l.title as string,
-          description: (l.description as string) || null,
-          videoUrl: (l.videoUrl as string) || null,
-          imageUrl: (l.imageUrl as string) || null,
+  // Create course
+  const course = await prisma.course.create({ data: courseData });
+
+  // Create modules
+  const moduleMap: Record<string, string> = {};
+  if (modules && modules.length > 0) {
+    for (let i = 0; i < modules.length; i++) {
+      const m = modules[i] as Record<string, unknown>;
+      const created = await prisma.module.create({
+        data: {
+          courseId: course.id,
+          title: (m.title as string) || `Модуль ${i + 1}`,
           order: i + 1,
-          links: (l.links as string) || null,
-          homework: (l.homework as string) || null,
-        })),
-      },
-    },
-  });
+        },
+      });
+      moduleMap[`new-${i}`] = created.id;
+      if (m.id) moduleMap[m.id as string] = created.id;
+    }
+  }
+
+  // Create lessons
+  if (lessons && lessons.length > 0) {
+    await prisma.lesson.createMany({
+      data: (lessons as Record<string, unknown>[]).map((l, i) => ({
+        courseId: course.id,
+        title: l.title as string,
+        description: (l.description as string) || null,
+        videoUrl: (l.videoUrl as string) || null,
+        imageUrl: (l.imageUrl as string) || null,
+        order: i + 1,
+        links: (l.links as string) || null,
+        homework: (l.homework as string) || null,
+        moduleId: l.moduleId ? (moduleMap[l.moduleId as string] || (l.moduleId as string)) : null,
+      })),
+    });
+  }
 
   return NextResponse.json({ course });
 }

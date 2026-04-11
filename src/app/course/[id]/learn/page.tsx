@@ -29,11 +29,19 @@ interface Lesson {
 
 interface LessonWithProgress extends Lesson {
   completed: boolean;
+  moduleId: string | null;
+}
+
+interface ModuleData {
+  id: string;
+  title: string;
+  order: number;
 }
 
 interface CourseData {
   id: string;
   title: string;
+  modules: ModuleData[];
   lessons: LessonWithProgress[];
   recommendedCourseId: string | null;
   discountPercent: number | null;
@@ -155,52 +163,82 @@ export default function LearnPage() {
               </div>
             </div>
 
-            {/* Lessons */}
+            {/* Lessons grouped by modules */}
             <div className="space-y-1">
-              {course.lessons.map((lesson) => {
-                const accessible = isLessonAccessible(lesson);
-                const isActive = activeLesson?.id === lesson.id;
+              {(() => {
+                const hasModules = course.modules && course.modules.length > 0;
+                if (!hasModules) {
+                  // No modules — flat list
+                  return course.lessons.map((lesson) => renderLessonButton(lesson));
+                }
+                // Group by modules
+                const groups: { module: ModuleData | null; lessons: LessonWithProgress[] }[] = [];
+                // Lessons without module
+                const noModule = course.lessons.filter((l) => !l.moduleId);
+                if (noModule.length > 0) groups.push({ module: null, lessons: noModule });
+                // Each module
+                for (const mod of course.modules) {
+                  const modLessons = course.lessons.filter((l) => l.moduleId === mod.id);
+                  if (modLessons.length > 0) groups.push({ module: mod, lessons: modLessons });
+                }
+                return groups.map((g, gi) => (
+                  <div key={gi} className="mb-3">
+                    {g.module && (
+                      <div className="flex items-center gap-2 px-2 py-2 mb-1">
+                        <div className="w-1.5 h-1.5 rounded-full bg-neon-purple" />
+                        <span className="text-xs font-bold text-neon-purple uppercase tracking-wider">
+                          {g.module.title}
+                        </span>
+                      </div>
+                    )}
+                    {g.lessons.map((lesson) => renderLessonButton(lesson))}
+                  </div>
+                ));
 
-                return (
-                  <button
-                    key={lesson.id}
-                    onClick={() => accessible && setActiveLesson(lesson)}
-                    disabled={!accessible}
-                    className={`w-full text-left p-3 rounded-xl transition-all duration-200 flex items-center gap-3 ${
-                      isActive
-                        ? "bg-accent/10 border border-accent/20"
-                        : accessible
-                        ? "hover:bg-bg-card-hover"
-                        : "opacity-40 cursor-not-allowed"
-                    }`}
-                  >
-                    <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
-                        lesson.completed
-                          ? "bg-green-500/15 text-green-400"
-                          : isActive
-                          ? "bg-accent/15 text-accent"
-                          : "bg-bg-card text-text-muted"
+                function renderLessonButton(lesson: LessonWithProgress) {
+                  const accessible = isLessonAccessible(lesson);
+                  const isActive = activeLesson?.id === lesson.id;
+                  return (
+                    <button
+                      key={lesson.id}
+                      onClick={() => accessible && setActiveLesson(lesson)}
+                      disabled={!accessible}
+                      className={`w-full text-left p-3 rounded-xl transition-all duration-200 flex items-center gap-3 ${
+                        isActive
+                          ? "bg-accent/10 border border-accent/20"
+                          : accessible
+                          ? "hover:bg-bg-card-hover"
+                          : "opacity-40 cursor-not-allowed"
                       }`}
                     >
-                      {lesson.completed ? (
-                        <CheckCircle className="w-4 h-4" />
-                      ) : accessible ? (
-                        <span className="text-xs font-bold">{lesson.order}</span>
-                      ) : (
-                        <Lock className="w-3.5 h-3.5" />
-                      )}
-                    </div>
-                    <span
-                      className={`text-sm truncate ${
-                        isActive ? "text-accent font-medium" : "text-text-secondary"
-                      }`}
-                    >
-                      {lesson.title}
-                    </span>
-                  </button>
-                );
-              })}
+                      <div
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                          lesson.completed
+                            ? "bg-green-500/15 text-green-400"
+                            : isActive
+                            ? "bg-accent/15 text-accent"
+                            : "bg-bg-card text-text-muted"
+                        }`}
+                      >
+                        {lesson.completed ? (
+                          <CheckCircle className="w-4 h-4" />
+                        ) : accessible ? (
+                          <span className="text-xs font-bold">{lesson.order}</span>
+                        ) : (
+                          <Lock className="w-3.5 h-3.5" />
+                        )}
+                      </div>
+                      <span
+                        className={`text-sm truncate ${
+                          isActive ? "text-accent font-medium" : "text-text-secondary"
+                        }`}
+                      >
+                        {lesson.title}
+                      </span>
+                    </button>
+                  );
+                }
+              })()}
             </div>
           </div>
         </aside>

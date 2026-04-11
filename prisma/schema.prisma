@@ -61,6 +61,7 @@ model Lesson {
   title        String
   description  String?
   videoUrl     String?
+  imageUrl     String?
   order        Int
   links        String?
   homework     String?

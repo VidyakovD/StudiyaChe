@@ -52,6 +52,7 @@ export async function PUT(
         title: l.title as string,
         description: (l.description as string) || null,
         videoUrl: (l.videoUrl as string) || null,
+        imageUrl: (l.imageUrl as string) || null,
         order: i + 1,
         links: (l.links as string) || null,
         homework: (l.homework as string) || null,

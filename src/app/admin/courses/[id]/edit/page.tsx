@@ -11,6 +11,7 @@ interface Lesson {
   title: string;
   description: string;
   videoUrl: string;
+  imageUrl: string;
   order: number;
   links: string;
   homework: string;
@@ -87,6 +88,7 @@ export default function EditCoursePage() {
           title: "",
           description: "",
           videoUrl: "",
+          imageUrl: "",
           order: form.lessons.length + 1,
           links: "",
           homework: "",
@@ -342,11 +344,46 @@ export default function EditCoursePage() {
                         className="input-dark min-h-[80px] resize-y"
                       />
 
+                      {/* Обложка урока */}
+                      <div>
+                        <label className="text-xs text-text-muted mb-1 block">Обложка урока</label>
+                        <div className="flex gap-2 items-center">
+                          {lesson.imageUrl && (
+                            <img src={lesson.imageUrl} alt="Превью" className="w-16 h-10 object-cover rounded-lg border border-border-default" />
+                          )}
+                          <label className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-accent/10 text-accent border border-accent/20 text-xs font-medium cursor-pointer hover:bg-accent/15 transition-colors">
+                            <Upload className="w-3 h-3" />
+                            Загрузить
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                const fd = new FormData();
+                                fd.append("file", file);
+                                const res = await fetch("/api/upload", { method: "POST", body: fd });
+                                const data = await res.json();
+                                if (data.url) updateLesson(idx, "imageUrl", data.url);
+                              }}
+                            />
+                          </label>
+                          <input
+                            type="text"
+                            value={lesson.imageUrl}
+                            onChange={(e) => updateLesson(idx, "imageUrl", e.target.value)}
+                            placeholder="или URL картинки..."
+                            className="input-dark flex-1 !py-1.5 text-xs"
+                          />
+                        </div>
+                      </div>
+
                       <input
                         type="text"
                         value={lesson.videoUrl}
                         onChange={(e) => updateLesson(idx, "videoUrl", e.target.value)}
-                        placeholder="URL видео"
+                        placeholder="URL видео (Kinescope)"
                         className="input-dark"
                       />
 

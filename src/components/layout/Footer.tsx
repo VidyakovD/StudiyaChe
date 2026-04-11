@@ -2,13 +2,14 @@
 
 import { motion } from "framer-motion";
 import { staggerContainer, fadeInUp } from "@/hooks/useAnimations";
+import { Send } from "lucide-react";
 
 export default function Footer() {
   return (
     <footer className="relative z-10 border-t border-border-default bg-bg-secondary/50">
       <div className="max-w-7xl mx-auto px-6 py-12">
         <motion.div
-          className="grid grid-cols-1 md:grid-cols-3 gap-10"
+          className="grid grid-cols-1 md:grid-cols-4 gap-10"
           variants={staggerContainer}
           initial="hidden"
           whileInView="visible"
@@ -22,9 +23,19 @@ export default function Footer() {
               </div>
               <span className="tracking-tight">Студия ЧЕ</span>
             </a>
-            <p className="text-text-muted text-sm leading-relaxed">
+            <p className="text-text-muted text-sm leading-relaxed mb-4">
               Обучающая платформа по видеопроизводству, нейросетям и ИИ-инструментам для бизнеса.
             </p>
+            {/* Telegram */}
+            <a
+              href="https://t.me/studiyaCHE"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#2AABEE]/10 border border-[#2AABEE]/20 text-[#2AABEE] hover:bg-[#2AABEE]/15 hover:border-[#2AABEE]/30 transition-all text-sm font-medium group"
+            >
+              <Send className="w-4 h-4 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform" />
+              Telegram-канал
+            </a>
           </motion.div>
 
           {/* Links */}
@@ -65,6 +76,32 @@ export default function Footer() {
                 </a>
               ))}
             </div>
+          </motion.div>
+
+          {/* Telegram CTA */}
+          <motion.div variants={fadeInUp}>
+            <h3 className="text-text-primary font-semibold mb-4 tracking-tight">Сообщество</h3>
+            <a
+              href="https://t.me/studiyaCHE"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block gradient-border p-4 group hover:border-[#2AABEE]/20 transition-all"
+            >
+              <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 rounded-xl bg-[#2AABEE]/15 flex items-center justify-center group-hover:bg-[#2AABEE]/20 transition-colors">
+                    <Send className="w-5 h-5 text-[#2AABEE]" />
+                  </div>
+                  <div>
+                    <p className="text-text-primary font-medium text-sm">Telegram</p>
+                    <p className="text-text-muted text-xs">@studiyaCHE</p>
+                  </div>
+                </div>
+                <p className="text-text-muted text-xs leading-relaxed">
+                  Новости, анонсы курсов, полезные материалы
+                </p>
+              </div>
+            </a>
           </motion.div>
         </motion.div>
 

@@ -6,8 +6,10 @@ export async function GET(req: NextRequest) {
   const courseId = req.nextUrl.searchParams.get("courseId");
   const userId = req.nextUrl.searchParams.get("userId");
 
+  const baseUrl = process.env.NEXTAUTH_URL || "https://studiache.ru";
+
   if (!courseId || !userId) {
-    return NextResponse.redirect(new URL("/", req.nextUrl.origin));
+    return NextResponse.redirect(`${baseUrl}/`);
   }
 
   // Проверяем, создана ли уже покупка (вебхук мог прийти раньше)
@@ -16,8 +18,6 @@ export async function GET(req: NextRequest) {
   });
 
   if (!existing) {
-    // Покупка ещё не подтверждена вебхуком — создаём
-    // В продакшене лучше ждать вебхук, но для тестового режима создаём сразу
     const course = await prisma.course.findUnique({ where: { id: courseId } });
     if (course) {
       await prisma.purchase.create({
@@ -26,6 +26,5 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Перенаправляем на страницу курса
-  return NextResponse.redirect(new URL(`/course/${courseId}/learn`, req.nextUrl.origin));
+  return NextResponse.redirect(`${baseUrl}/course/${courseId}/learn`);
 }

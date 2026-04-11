@@ -16,16 +16,13 @@ export default function ProtectedVideoPlayer({ videoUrl, title }: ProtectedVideo
   const [showVideo, setShowVideo] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  // Функция перемотки через postMessage (Kinescope Player API)
+  // Функция перемотки — перезагружает iframe с параметром ?t=
   const seekTo = useCallback((seconds: number) => {
-    if (iframeRef.current?.contentWindow) {
-      // Kinescope поддерживает postMessage API
-      iframeRef.current.contentWindow.postMessage(
-        JSON.stringify({ method: "seekTo", value: seconds }),
-        "*"
-      );
+    if (iframeRef.current && videoUrl) {
+      const baseUrl = videoUrl.split("?")[0];
+      iframeRef.current.src = `${baseUrl}?t=${seconds}&autoplay=1`;
     }
-  }, []);
+  }, [videoUrl]);
 
   // Экспортируем seekTo в window для доступа из описания
   useEffect(() => {

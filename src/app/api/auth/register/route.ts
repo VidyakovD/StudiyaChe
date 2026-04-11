@@ -37,8 +37,8 @@ export async function POST(req: NextRequest) {
       data: { name, email, password: hashedPassword, verifyToken },
     });
 
-    // Отправляем письмо верификации (graceful — если SMTP не настроен, не крашится)
-    await sendVerificationEmail(email, verifyToken);
+    // Отправляем письмо верификации (fire-and-forget — не блокирует ответ)
+    sendVerificationEmail(email, verifyToken);
 
     return NextResponse.json({
       success: true,

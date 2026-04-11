@@ -125,6 +125,12 @@ export default function LoginPage() {
                 </div>
               </div>
 
+              <div className="text-right">
+                <a href="/auth/forgot-password" className="text-sm text-text-muted hover:text-accent transition-colors">
+                  Забыл пароль?
+                </a>
+              </div>
+
               <motion.button
                 type="submit"
                 disabled={loading}

@@ -20,9 +20,11 @@ model User {
   password      String
   avatarUrl     String?
   role          Role      @default(USER)
-  emailVerified Boolean   @default(false)
-  verifyToken   String?
-  createdAt     DateTime  @default(now())
+  emailVerified  Boolean   @default(false)
+  verifyToken    String?
+  resetToken     String?
+  resetTokenExp  DateTime?
+  createdAt      DateTime  @default(now())
 
   purchases      Purchase[]
   lessonProgress LessonProgress[]

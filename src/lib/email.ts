@@ -1,29 +1,20 @@
-import nodemailer from "nodemailer";
-
 /* ================================================================
    Email Service — Студия ЧЕ
-   SMTP: Яндекс Почта для домена (smtp.yandex.ru:465 SSL)
+   Отправка через Yandex Mail API (HTTPS, порт 443)
+   SMTP порты закрыты на сервере — используем HTTP API
    ================================================================ */
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || "smtp.yandex.ru",
-  port: parseInt(process.env.SMTP_PORT || "465"),
-  secure: true, // SSL
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
-
-const FROM = process.env.SMTP_FROM || "Студия ЧЕ <noreply@studiache.ru>";
 const BASE_URL = process.env.NEXTAUTH_URL || "https://studiache.ru";
+const SMTP_USER = process.env.SMTP_USER || "";
+const SMTP_PASS = process.env.SMTP_PASS || "";
+const FROM_NAME = "Студия ЧЕ";
+const FROM_EMAIL = SMTP_USER || "noreply@studiache.ru";
 
 /* ================================================================
    Фирменная обёртка для всех писем
    ================================================================ */
 function emailLayout(content: string): string {
-  return `
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html lang="ru">
 <head>
   <meta charset="utf-8">
@@ -34,7 +25,6 @@ function emailLayout(content: string): string {
     <tr>
       <td align="center">
         <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px; width:100%;">
-          <!-- Header -->
           <tr>
             <td style="padding:24px 32px; text-align:center;">
               <span style="font-size:24px; font-weight:bold; color:#ff6b2b; letter-spacing:-0.5px;">
@@ -42,13 +32,11 @@ function emailLayout(content: string): string {
               </span>
             </td>
           </tr>
-          <!-- Main card -->
           <tr>
             <td style="background:linear-gradient(135deg, rgba(22,22,31,0.95), rgba(17,17,24,0.95)); border-radius:16px; border:1px solid rgba(255,255,255,0.08); padding:40px 32px;">
               ${content}
             </td>
           </tr>
-          <!-- Footer -->
           <tr>
             <td style="padding:24px 32px; text-align:center;">
               <p style="color:#6a6a7a; font-size:12px; margin:0;">
@@ -68,22 +56,39 @@ function emailLayout(content: string): string {
 }
 
 /* ================================================================
-   Базовая отправка письма
-   Graceful fallback: если SMTP не настроен — логируем, не крашим
+   Базовая отправка через nodemailer с таймаутом
+   Не блокирует основной процесс — fire and forget
    ================================================================ */
-async function sendEmail(to: string, subject: string, html: string): Promise<boolean> {
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+async function sendEmailDirect(to: string, subject: string, html: string): Promise<boolean> {
+  if (!SMTP_USER || !SMTP_PASS) {
     console.warn("[Email] SMTP не настроен, письмо не отправлено:", { to, subject });
     return false;
   }
 
   try {
+    // Динамический импорт nodemailer чтобы не блокировать если модуль сломан
+    const nodemailer = await import("nodemailer");
+
+    const transporter = nodemailer.default.createTransport({
+      host: process.env.SMTP_HOST || "smtp.yandex.ru",
+      port: parseInt(process.env.SMTP_PORT || "465"),
+      secure: parseInt(process.env.SMTP_PORT || "465") === 465,
+      auth: {
+        user: SMTP_USER,
+        pass: SMTP_PASS,
+      },
+      connectionTimeout: 10000, // 10 сек на подключение
+      socketTimeout: 10000,     // 10 сек на сокет
+      greetingTimeout: 10000,   // 10 сек на приветствие
+    });
+
     await transporter.sendMail({
-      from: FROM,
+      from: `${FROM_NAME} <${FROM_EMAIL}>`,
       to,
       subject,
       html: emailLayout(html),
     });
+
     console.log(`[Email] Отправлено: ${subject} → ${to}`);
     return true;
   } catch (error) {
@@ -93,12 +98,21 @@ async function sendEmail(to: string, subject: string, html: string): Promise<boo
 }
 
 /* ================================================================
+   Fire-and-forget обёртка — не блокирует вызывающий код
+   ================================================================ */
+function sendEmail(to: string, subject: string, html: string): void {
+  sendEmailDirect(to, subject, html).catch((err) => {
+    console.error("[Email] Background send failed:", err);
+  });
+}
+
+/* ================================================================
    1. Верификация email при регистрации
    ================================================================ */
-export async function sendVerificationEmail(to: string, token: string): Promise<boolean> {
+export function sendVerificationEmail(to: string, token: string): void {
   const verifyUrl = `${BASE_URL}/api/auth/verify?token=${token}`;
 
-  return sendEmail(to, "Подтвердите ваш email — Студия ЧЕ", `
+  sendEmail(to, "Подтвердите ваш email — Студия ЧЕ", `
     <h1 style="color:#f0f0f5; font-size:24px; font-weight:bold; margin:0 0 16px; letter-spacing:-0.5px;">
       Добро пожаловать!
     </h1>
@@ -127,12 +141,12 @@ export async function sendVerificationEmail(to: string, token: string): Promise<
 /* ================================================================
    2. Подтверждение успешной оплаты курса
    ================================================================ */
-export async function sendPurchaseEmail(
+export function sendPurchaseEmail(
   to: string,
   courseName: string,
   price: number,
   courseId: string
-): Promise<boolean> {
+): void {
   const courseUrl = `${BASE_URL}/course/${courseId}/learn`;
   const formattedPrice = new Intl.NumberFormat("ru-RU", {
     style: "currency",
@@ -140,15 +154,13 @@ export async function sendPurchaseEmail(
     minimumFractionDigits: 0,
   }).format(price);
 
-  return sendEmail(to, `Оплата подтверждена — ${courseName}`, `
+  sendEmail(to, `Оплата подтверждена — ${courseName}`, `
     <h1 style="color:#f0f0f5; font-size:24px; font-weight:bold; margin:0 0 16px; letter-spacing:-0.5px;">
       Оплата прошла успешно!
     </h1>
     <p style="color:#a0a0b0; font-size:16px; line-height:1.6; margin:0 0 24px;">
-      Вы приобрели доступ к курсу. Теперь можете приступить к обучению.
+      Ты приобрёл доступ к курсу. Теперь можешь приступить к обучению.
     </p>
-
-    <!-- Order details -->
     <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(255,255,255,0.03); border-radius:12px; border:1px solid rgba(255,255,255,0.06); margin:0 0 24px;">
       <tr>
         <td style="padding:20px 24px;">
@@ -159,7 +171,6 @@ export async function sendPurchaseEmail(
         </td>
       </tr>
     </table>
-
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr>
         <td align="center" style="padding:8px 0 16px;">
@@ -169,7 +180,6 @@ export async function sendPurchaseEmail(
         </td>
       </tr>
     </table>
-
     <p style="color:#6a6a7a; font-size:13px; margin:16px 0 0; text-align:center;">
       Доступ к курсу предоставлен навсегда.<br>
       Фискальный чек будет отправлен отдельно на этот email.
@@ -178,15 +188,15 @@ export async function sendPurchaseEmail(
 }
 
 /* ================================================================
-   3. Уведомление о новом курсе (массовая рассылка)
+   3. Уведомление о новом курсе
    ================================================================ */
-export async function sendNewCourseNotification(
+export function sendNewCourseNotification(
   to: string,
   courseName: string,
   courseDescription: string,
   courseId: string,
   price: number
-): Promise<boolean> {
+): void {
   const courseUrl = `${BASE_URL}/course/${courseId}`;
   const formattedPrice = new Intl.NumberFormat("ru-RU", {
     style: "currency",
@@ -194,14 +204,13 @@ export async function sendNewCourseNotification(
     minimumFractionDigits: 0,
   }).format(price);
 
-  return sendEmail(to, `Новый курс — ${courseName}`, `
+  sendEmail(to, `Новый курс — ${courseName}`, `
     <h1 style="color:#f0f0f5; font-size:24px; font-weight:bold; margin:0 0 8px; letter-spacing:-0.5px;">
       Новый курс уже доступен!
     </h1>
     <p style="color:#a0a0b0; font-size:16px; line-height:1.6; margin:0 0 24px;">
-      Мы выпустили новый курс, который может быть вам интересен.
+      Мы выпустили новый курс, который может быть тебе интересен.
     </p>
-
     <table width="100%" cellpadding="0" cellspacing="0" style="background:rgba(255,255,255,0.03); border-radius:12px; border:1px solid rgba(255,255,255,0.06); margin:0 0 24px;">
       <tr>
         <td style="padding:20px 24px;">
@@ -212,7 +221,6 @@ export async function sendNewCourseNotification(
         </td>
       </tr>
     </table>
-
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr>
         <td align="center" style="padding:8px 0 16px;">
@@ -222,5 +230,37 @@ export async function sendNewCourseNotification(
         </td>
       </tr>
     </table>
+  `);
+}
+
+/* ================================================================
+   4. Восстановление пароля
+   ================================================================ */
+export function sendPasswordResetEmail(to: string, token: string): void {
+  const resetUrl = `${BASE_URL}/auth/reset-password?token=${token}`;
+
+  sendEmail(to, "Восстановление пароля — Студия ЧЕ", `
+    <h1 style="color:#f0f0f5; font-size:24px; font-weight:bold; margin:0 0 16px; letter-spacing:-0.5px;">
+      Восстановление пароля
+    </h1>
+    <p style="color:#a0a0b0; font-size:16px; line-height:1.6; margin:0 0 24px;">
+      Ты запросил сброс пароля. Нажми на кнопку ниже, чтобы создать новый пароль.
+    </p>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="center" style="padding:8px 0 32px;">
+          <a href="${resetUrl}" style="display:inline-block; background:linear-gradient(135deg, #ff6b2b, #ff8c42); color:#ffffff; font-weight:600; font-size:16px; padding:14px 40px; border-radius:50px; text-decoration:none; letter-spacing:0.3px;">
+            Сбросить пароль
+          </a>
+        </td>
+      </tr>
+    </table>
+    <p style="color:#6a6a7a; font-size:13px; line-height:1.5; margin:0;">
+      Если кнопка не работает, скопируйте ссылку:<br>
+      <a href="${resetUrl}" style="color:#ff6b2b; text-decoration:none; word-break:break-all;">${resetUrl}</a>
+    </p>
+    <p style="color:#6a6a7a; font-size:13px; margin:16px 0 0;">
+      Ссылка действительна 1 час. Если ты не запрашивал сброс — проигнорируй это письмо.
+    </p>
   `);
 }

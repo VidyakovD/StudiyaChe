@@ -134,7 +134,7 @@ export default function HeroSection() {
 
         {/* Headline */}
         <motion.h1
-          className="text-5xl md:text-7xl font-bold mb-6"
+          className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6"
           variants={fadeInUp}
         >
           <span className="text-text-primary">Освой </span>

@@ -34,6 +34,16 @@ export default function CourseCard({
     >
       <div className="card-glow" />
 
+      {/* Random accent stripe */}
+      <div
+        className="accent-stripe"
+        style={{
+          left: `${10 + Math.random() * 20}%`,
+          width: `${30 + Math.random() * 40}%`,
+          opacity: 0.5 + Math.random() * 0.5,
+        }}
+      />
+
       {/* Thumbnail */}
       <div className="relative h-48 bg-bg-secondary rounded-t-2xl overflow-hidden">
         {imageUrl ? (

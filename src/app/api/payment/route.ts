@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Платёжная система не настроена" }, { status: 500 });
   }
 
-  const idempotenceKey = `${session.user.id}-${courseId}-${Date.now()}`;
+  const idempotenceKey = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 
   const paymentData = {
     amount: {

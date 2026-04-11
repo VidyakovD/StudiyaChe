@@ -43,8 +43,12 @@ export async function PUT(
     data: courseData,
   });
 
-  // Sync lessons: delete old and create new
+  // Sync lessons: delete progress, then old lessons, then create new
   if (lessons) {
+    const oldLessons = await prisma.lesson.findMany({ where: { courseId: id }, select: { id: true } });
+    if (oldLessons.length > 0) {
+      await prisma.lessonProgress.deleteMany({ where: { lessonId: { in: oldLessons.map((l) => l.id) } } });
+    }
     await prisma.lesson.deleteMany({ where: { courseId: id } });
     await prisma.lesson.createMany({
       data: lessons.map((l: Record<string, unknown>, i: number) => ({

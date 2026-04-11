@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Play } from "lucide-react";
 
 interface ProtectedVideoPlayerProps {
@@ -9,18 +9,31 @@ interface ProtectedVideoPlayerProps {
 }
 
 /**
- * Защищённый видеоплеер.
- *
- * Поддерживает два режима:
- * 1. Kinescope (DRM) — если videoUrl содержит "kinescope.io"
- *    Обеспечивает защиту от записи экрана (чёрный экран при скринкасте).
- *    Формат URL: https://kinescope.io/embed/{videoId}
- *
- * 2. Прямой URL на видео — для тестирования и видео без DRM.
- *    Базовая защита: блокировка ПКМ, запрет скачивания.
+ * Защищённый видеоплеер с поддержкой Kinescope Player API.
+ * Экспортирует seekTo через window для вызова из таймингов в описании.
  */
 export default function ProtectedVideoPlayer({ videoUrl, title }: ProtectedVideoPlayerProps) {
   const [showVideo, setShowVideo] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Функция перемотки через postMessage (Kinescope Player API)
+  const seekTo = useCallback((seconds: number) => {
+    if (iframeRef.current?.contentWindow) {
+      // Kinescope поддерживает postMessage API
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ method: "seekTo", value: seconds }),
+        "*"
+      );
+    }
+  }, []);
+
+  // Экспортируем seekTo в window для доступа из описания
+  useEffect(() => {
+    (window as unknown as Record<string, unknown>).__videoSeekTo = seekTo;
+    return () => {
+      delete (window as unknown as Record<string, unknown>).__videoSeekTo;
+    };
+  }, [seekTo]);
 
   if (!videoUrl) {
     return (
@@ -33,13 +46,13 @@ export default function ProtectedVideoPlayer({ videoUrl, title }: ProtectedVideo
     );
   }
 
-  // Kinescope embed — DRM защита от записи экрана
   const isKinescope = videoUrl.includes("kinescope.io");
 
   if (isKinescope) {
     return (
       <div className="relative aspect-video rounded-2xl overflow-hidden neon-border">
         <iframe
+          ref={iframeRef}
           src={videoUrl}
           className="w-full h-full"
           allow="autoplay; fullscreen; picture-in-picture; encrypted-media; screen-wake-lock"
@@ -50,7 +63,7 @@ export default function ProtectedVideoPlayer({ videoUrl, title }: ProtectedVideo
     );
   }
 
-  // Fallback: прямой URL на видео (для тестирования)
+  // Fallback: прямой URL
   return (
     <div
       className="relative aspect-video bg-black rounded-2xl overflow-hidden neon-border group select-none"

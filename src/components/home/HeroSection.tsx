@@ -1,83 +1,141 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useRef } from "react";
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  useScroll,
+  useTransform,
+} from "framer-motion";
 import { useSession } from "next-auth/react";
+import {
+  staggerContainer,
+  fadeInUp,
+  scaleReveal,
+  easing,
+} from "@/hooks/useAnimations";
 
-const stagger = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.15 } },
-};
+function MagneticButton({
+  href,
+  children,
+  className,
+}: {
+  href: string;
+  children: React.ReactNode;
+  className: string;
+}) {
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const springX = useSpring(x, { stiffness: 150, damping: 15 });
+  const springY = useSpring(y, { stiffness: 150, damping: 15 });
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 30, filter: "blur(10px)" },
-  visible: {
-    opacity: 1,
-    y: 0,
-    filter: "blur(0px)",
-    transition: { duration: 0.8, ease: "easeOut" as const },
-  },
-};
-
-const scaleIn = {
-  hidden: { opacity: 0, scale: 0.9 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    transition: { duration: 0.6, ease: "easeOut" as const },
-  },
-};
+  return (
+    <motion.a
+      href={href}
+      className={className}
+      style={{ x: springX, y: springY }}
+      onMouseMove={(e) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        x.set((e.clientX - cx) * 0.25);
+        y.set((e.clientY - cy) * 0.25);
+      }}
+      onMouseLeave={() => {
+        x.set(0);
+        y.set(0);
+      }}
+      whileHover={{ scale: 1.04 }}
+      whileTap={{ scale: 0.97 }}
+    >
+      {children}
+    </motion.a>
+  );
+}
 
 export default function HeroSection() {
   const { data: session } = useSession();
+  const sectionRef = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start start", "end start"],
+  });
+
+  // Parallax transforms
+  const textY = useTransform(scrollYProgress, [0, 1], [0, 120]);
+  const orb1Y = useTransform(scrollYProgress, [0, 1], [0, -80]);
+  const orb2Y = useTransform(scrollYProgress, [0, 1], [0, -50]);
+  const orb3Y = useTransform(scrollYProgress, [0, 1], [0, -120]);
+  const fadeOpacity = useTransform(scrollYProgress, [0, 0.6], [1, 0]);
 
   return (
-    <section className="relative min-h-[85vh] flex items-center justify-center overflow-hidden">
-      {/* Background gradient orbs — animated */}
+    <section
+      ref={sectionRef}
+      className="relative min-h-[85vh] flex items-center justify-center overflow-hidden"
+    >
+      {/* Background gradient orbs — parallax */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div
           className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-accent/5 blur-[120px]"
+          style={{ y: orb1Y }}
           animate={{
             scale: [1, 1.2, 1],
             opacity: [0.3, 0.6, 0.3],
             x: [0, 30, 0],
-            y: [0, -20, 0],
           }}
           transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
         />
         <motion.div
           className="absolute bottom-1/4 right-1/4 w-[400px] h-[400px] rounded-full bg-neon-purple/5 blur-[120px]"
+          style={{ y: orb2Y }}
           animate={{
             scale: [1, 1.15, 1],
             opacity: [0.3, 0.5, 0.3],
             x: [0, -25, 0],
-            y: [0, 15, 0],
           }}
-          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut", delay: 2 }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 2,
+          }}
         />
         <motion.div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-accent/3 blur-[150px]"
+          style={{ y: orb3Y }}
           animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.4, 0.2] }}
-          transition={{ duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+          transition={{
+            duration: 6,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1,
+          }}
         />
       </div>
 
       <motion.div
         className="relative z-10 max-w-5xl mx-auto px-6 text-center"
-        variants={stagger}
+        style={{ y: textY, opacity: fadeOpacity }}
+        variants={staggerContainer}
         initial="hidden"
         animate="visible"
       >
+        {/* Badge */}
         <motion.div
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full mb-8 glass-card"
-          variants={scaleIn}
+          variants={scaleReveal}
         >
           <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-          <span className="text-sm text-accent font-medium">Новые курсы уже доступны</span>
+          <span className="text-sm text-accent font-medium tracking-wide">
+            Новые курсы уже доступны
+          </span>
         </motion.div>
 
+        {/* Headline */}
         <motion.h1
-          className="text-5xl md:text-7xl font-bold mb-6 leading-tight"
-          variants={fadeUp}
+          className="text-5xl md:text-7xl font-bold mb-6"
+          variants={fadeInUp}
         >
           <span className="text-text-primary">Освой </span>
           <span className="bg-gradient-to-r from-accent to-accent-light bg-clip-text text-transparent neon-text">
@@ -90,43 +148,54 @@ export default function HeroSection() {
           </span>
         </motion.h1>
 
+        {/* Subtitle */}
         <motion.p
-          className="text-lg md:text-xl text-text-secondary max-w-2xl mx-auto mb-10 leading-relaxed"
-          variants={fadeUp}
+          className="text-lg md:text-xl text-text-secondary mx-auto mb-10"
+          variants={fadeInUp}
         >
           Практические курсы по видеомонтажу, нейросетям и ИИ-инструментам для бизнеса.
+          <br className="hidden sm:block" />
           Учись в своём темпе, получай реальные навыки.
         </motion.p>
 
+        {/* CTA buttons — magnetic */}
         <motion.div
           className="flex flex-col sm:flex-row items-center justify-center gap-4"
-          variants={fadeUp}
+          variants={fadeInUp}
         >
-          <motion.a
+          <MagneticButton
             href="#courses"
             className="btn-primary text-lg px-8 py-4 inline-flex items-center gap-2"
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.97 }}
           >
             <span>Смотреть курсы</span>
-            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-            </svg>
-          </motion.a>
-          <motion.a
+            <motion.svg
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              animate={{ x: [0, 4, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 8l4 4m0 0l-4 4m4-4H3"
+              />
+            </motion.svg>
+          </MagneticButton>
+          <MagneticButton
             href={session ? "/cabinet" : "/auth/register"}
             className="px-8 py-4 rounded-xl text-text-secondary hover:text-text-primary transition-all duration-300 text-lg glass-card"
-            whileHover={{ scale: 1.05, y: -2 }}
-            whileTap={{ scale: 0.97 }}
           >
             {session ? "Личный кабинет" : "Создать аккаунт"}
-          </motion.a>
+          </MagneticButton>
         </motion.div>
 
-        {/* Stats */}
+        {/* Stats — staggered */}
         <motion.div
           className="mt-20 grid grid-cols-3 gap-8 max-w-lg mx-auto"
-          variants={fadeUp}
+          variants={fadeInUp}
         >
           {[
             { value: "10+", label: "Курсов" },
@@ -136,12 +205,20 @@ export default function HeroSection() {
             <motion.div
               key={stat.label}
               className="text-center"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 1 + i * 0.15 }}
+              initial={{ opacity: 0, y: 20, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{
+                duration: 0.6,
+                delay: 1 + i * 0.12,
+                ease: easing.outQuart,
+              }}
             >
-              <div className="text-3xl font-bold text-accent neon-text">{stat.value}</div>
-              <div className="text-sm text-text-muted mt-1">{stat.label}</div>
+              <div className="text-3xl md:text-4xl font-bold text-accent neon-text tracking-tight">
+                {stat.value}
+              </div>
+              <div className="text-sm text-text-muted mt-1 tracking-wide">
+                {stat.label}
+              </div>
             </motion.div>
           ))}
         </motion.div>

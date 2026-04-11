@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Search, SlidersHorizontal } from "lucide-react";
 
 interface FilterBarProps {
@@ -33,11 +33,22 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
     onFilterChange({ category: activeCategory, search, sort: value });
   };
 
+  const allCategories = [
+    { id: "all", name: "Все курсы", slug: "all" },
+    ...categories,
+  ];
+
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      initial={{ opacity: 0, y: 16 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ duration: 0.5, ease: [0.25, 1, 0.5, 1] }}
+    >
       {/* Search bar */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+      <div className="relative max-w-md group">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted transition-colors group-focus-within:text-accent" />
         <input
           type="text"
           placeholder="Поиск курсов..."
@@ -50,29 +61,30 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
       {/* Categories + Sort */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap gap-2">
-          <motion.button
-            onClick={() => handleCategoryChange("all")}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
-              activeCategory === "all"
-                ? "bg-accent text-white neon-glow"
-                : "bg-bg-card text-text-secondary hover:text-text-primary border border-border-default hover:border-accent/30"
-            }`}
-            whileTap={{ scale: 0.95 }}
-          >
-            Все курсы
-          </motion.button>
-          {categories.map((cat) => (
+          {allCategories.map((cat) => (
             <motion.button
-              key={cat.id}
+              key={cat.slug}
               onClick={() => handleCategoryChange(cat.slug)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+              className={`relative px-4 py-2 rounded-full text-sm font-medium transition-colors duration-200 ${
                 activeCategory === cat.slug
-                  ? "bg-accent text-white neon-glow"
+                  ? "text-white"
                   : "bg-bg-card text-text-secondary hover:text-text-primary border border-border-default hover:border-accent/30"
               }`}
               whileTap={{ scale: 0.95 }}
+              whileHover={{ y: -1 }}
             >
-              {cat.name}
+              {activeCategory === cat.slug && (
+                <motion.div
+                  className="absolute inset-0 bg-accent rounded-full neon-glow"
+                  layoutId="activeCategory"
+                  transition={{
+                    type: "spring",
+                    stiffness: 400,
+                    damping: 30,
+                  }}
+                />
+              )}
+              <span className="relative z-10">{cat.name}</span>
             </motion.button>
           ))}
         </div>
@@ -82,7 +94,7 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
           <select
             value={sort}
             onChange={(e) => handleSortChange(e.target.value)}
-            className="bg-bg-card border border-border-default rounded-lg px-3 py-2 text-sm text-text-secondary focus:outline-none focus:border-accent/30 transition-colors"
+            className="bg-bg-card border border-border-default rounded-lg px-3 py-2 text-sm text-text-secondary focus:outline-none focus:border-accent/30 transition-all cursor-pointer hover:border-border-glow"
           >
             <option value="default">По умолчанию</option>
             <option value="price_asc">Сначала дешёвые</option>
@@ -90,6 +102,6 @@ export default function FilterBar({ categories, onFilterChange }: FilterBarProps
           </select>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }

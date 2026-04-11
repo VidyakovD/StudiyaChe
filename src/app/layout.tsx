@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import SessionProvider from "@/components/providers/SessionProvider";
+import PageTransition from "@/components/providers/PageTransition";
 import AiChatBot from "@/components/chat/AiChatBot";
 import "./globals.css";
 
@@ -31,7 +32,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-bg-primary text-text-primary">
         <SessionProvider>
-          {children}
+          <PageTransition>{children}</PageTransition>
           <AiChatBot />
         </SessionProvider>
       </body>

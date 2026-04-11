@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
+import { Search } from "lucide-react";
 import CourseCard from "./CourseCard";
 import FilterBar from "./FilterBar";
 
@@ -89,16 +90,28 @@ export default function CourseGrid() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="gradient-border h-[400px] animate-shimmer" />
+              <div key={i} className="gradient-border overflow-hidden">
+                <div className="h-48 bg-bg-secondary animate-pulse" />
+                <div className="p-5 space-y-3">
+                  <div className="h-5 bg-bg-secondary rounded-lg w-3/4 animate-pulse" />
+                  <div className="h-4 bg-bg-secondary rounded-lg w-full animate-pulse" />
+                  <div className="h-4 bg-bg-secondary rounded-lg w-1/2 animate-pulse" />
+                  <div className="pt-4 border-t border-border-default flex justify-between">
+                    <div className="h-6 bg-bg-secondary rounded-lg w-20 animate-pulse" />
+                    <div className="h-4 bg-bg-secondary rounded-lg w-16 animate-pulse" />
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         ) : filtered.length === 0 ? (
           <motion.div
             className="text-center py-20"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
           >
-            <div className="text-6xl mb-4">🔍</div>
+            <Search className="w-12 h-12 text-text-muted/30 mx-auto mb-4" />
             <p className="text-text-secondary text-lg">Курсы не найдены</p>
             <p className="text-text-muted mt-2">Попробуйте изменить фильтры</p>
           </motion.div>

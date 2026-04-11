@@ -82,11 +82,14 @@ body {
 
 .gradient-border {
   position: relative;
-  background: rgba(22, 22, 31, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  background: rgba(22, 22, 31, 0.5);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
   border-radius: 16px;
   overflow: hidden;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .gradient-border::before {
@@ -156,16 +159,22 @@ body {
   animation: gradient-shift 4s ease infinite;
 }
 
-/* ===== CARD HOVER EFFECTS ===== */
+/* ===== CARD HOVER EFFECTS (spring physics) ===== */
 .card-hover {
-  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease-out;
 }
 
 .card-hover:hover {
-  transform: translateY(-6px) scale(1.01);
+  transform: translateY(-5px);
   box-shadow:
-    0 0 30px rgba(255, 107, 43, 0.12),
-    0 25px 50px rgba(0, 0, 0, 0.4);
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 0 25px rgba(255, 107, 43, 0.08),
+    0 20px 40px rgba(0, 0, 0, 0.35);
+}
+
+.card-hover:active {
+  transform: translateY(-2px) scale(0.98);
+  transition: transform 0.1s ease-out;
 }
 
 .card-hover:hover .card-glow {
@@ -183,18 +192,20 @@ body {
   z-index: 1;
 }
 
-/* ===== BUTTON STYLES (glass + rounded) ===== */
+/* ===== BUTTON STYLES (liquid glass + spring physics) ===== */
 .btn-primary {
   background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
   color: white;
   font-weight: 600;
   border-radius: 50px;
   padding: 14px 32px;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease-out, opacity 0.2s ease-out;
   position: relative;
   overflow: hidden;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .btn-primary::before {
@@ -203,7 +214,7 @@ body {
   inset: 0;
   background: linear-gradient(135deg, var(--accent-light) 0%, var(--accent) 100%);
   opacity: 0;
-  transition: opacity 0.4s ease;
+  transition: opacity 0.3s ease-out;
   border-radius: inherit;
 }
 
@@ -213,18 +224,26 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  height: 50%;
-  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.15), transparent);
+  height: 45%;
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.18), transparent);
   border-radius: inherit;
   pointer-events: none;
 }
 
 .btn-primary:hover {
-  transform: translateY(-3px) scale(1.02);
+  transform: translateY(-2px);
   box-shadow:
-    0 0 25px var(--accent-glow),
-    0 15px 35px rgba(255, 107, 43, 0.25),
-    inset 0 0 20px rgba(255, 255, 255, 0.05);
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 0 20px var(--accent-glow),
+    0 12px 28px rgba(255, 107, 43, 0.2);
+}
+
+.btn-primary:active {
+  transform: translateY(0) scale(0.97);
+  transition: transform 0.1s ease-out;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .btn-primary:hover::before {
@@ -253,35 +272,47 @@ body {
   z-index: 2;
 }
 
-/* ===== GLASSMORPHISM (iPhone-style) ===== */
+/* ===== LIQUID GLASS (refraction + inner light) ===== */
 .glass {
-  background: rgba(17, 17, 24, 0.6);
+  background: rgba(17, 17, 24, 0.55);
   backdrop-filter: blur(24px) saturate(180%);
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.1);
 }
 
 .glass-strong {
-  background: rgba(17, 17, 24, 0.75);
+  background: rgba(17, 17, 24, 0.7);
   backdrop-filter: blur(40px) saturate(200%);
   -webkit-backdrop-filter: blur(40px) saturate(200%);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15),
+    0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .glass-card {
-  background: rgba(22, 22, 31, 0.5);
+  background: rgba(22, 22, 31, 0.45);
   backdrop-filter: blur(20px) saturate(150%);
   -webkit-backdrop-filter: blur(20px) saturate(150%);
   border: 1px solid rgba(255, 255, 255, 0.06);
   border-radius: 16px;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease-out, background 0.3s ease-out, border-color 0.3s ease-out;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 .glass-card:hover {
-  background: rgba(22, 22, 31, 0.7);
-  border-color: rgba(255, 107, 43, 0.15);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 107, 43, 0.05);
+  background: rgba(22, 22, 31, 0.65);
+  border-color: rgba(255, 107, 43, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 8px 32px rgba(0, 0, 0, 0.25),
+    0 0 15px rgba(255, 107, 43, 0.04);
 }
 
 /* ===== PARTICLES BACKGROUND ===== */
@@ -321,9 +352,9 @@ body {
   background: #3a3a4a;
 }
 
-/* ===== INPUT STYLES ===== */
+/* ===== INPUT STYLES (liquid glass) ===== */
 .input-dark {
-  background: var(--bg-secondary);
+  background: rgba(17, 17, 24, 0.6);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding-top: 12px;
@@ -331,14 +362,18 @@ body {
   padding-left: 16px;
   padding-right: 16px;
   color: var(--text-primary);
-  transition: all 0.3s ease;
+  transition: border-color 0.2s ease-out, box-shadow 0.2s ease-out;
   width: 100%;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
 .input-dark:focus {
   outline: none;
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(255, 107, 43, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 0 0 3px rgba(255, 107, 43, 0.08),
+    0 0 12px rgba(255, 107, 43, 0.04);
 }
 
 .input-dark::placeholder {

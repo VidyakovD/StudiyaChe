@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
 import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
+import { sendVerificationEmail } from "@/lib/email";
 
 export async function POST(req: NextRequest) {
   try {
@@ -36,10 +37,8 @@ export async function POST(req: NextRequest) {
       data: { name, email, password: hashedPassword, verifyToken },
     });
 
-    console.log(
-      "Verify email:",
-      `${process.env.NEXTAUTH_URL}/api/auth/verify?token=${verifyToken}`
-    );
+    // Отправляем письмо верификации (graceful — если SMTP не настроен, не крашится)
+    await sendVerificationEmail(email, verifyToken);
 
     return NextResponse.json({
       success: true,

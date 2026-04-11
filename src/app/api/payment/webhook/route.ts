@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendPurchaseEmail } from "@/lib/email";
 
 // Вебхук от ЮKassa — подтверждение успешной оплаты
 export async function POST(req: NextRequest) {
@@ -28,14 +29,18 @@ export async function POST(req: NextRequest) {
     if (!existing) {
       const course = await prisma.course.findUnique({ where: { id: courseId } });
       if (course) {
+        const amount = parseFloat(payment.amount?.value) || course.price;
+
         await prisma.purchase.create({
-          data: {
-            userId,
-            courseId,
-            amount: parseFloat(payment.amount?.value) || course.price,
-          },
+          data: { userId, courseId, amount },
         });
         console.log(`Purchase confirmed: user=${userId} course=${courseId}`);
+
+        // Отправляем email об успешной оплате
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (user?.email) {
+          await sendPurchaseEmail(user.email, course.title, amount, courseId);
+        }
       }
     }
 

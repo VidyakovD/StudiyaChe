@@ -62,6 +62,11 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid email or password");
         }
 
+        // Проверка верификации email (пропускаем для админов)
+        if (!user.emailVerified && user.role !== "ADMIN") {
+          throw new Error("Email not verified");
+        }
+
         return {
           id: user.id,
           name: user.name,

@@ -92,6 +92,7 @@ export default function CabinetPage() {
   const [courses, setCourses] = useState<PurchasedCourse[]>([]);
   const [tab, setTab] = useState<"courses" | "settings">("courses");
   const [name, setName] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [nickname, setNickname] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
@@ -123,10 +124,11 @@ export default function CabinetPage() {
       await fetch("/api/cabinet/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, nickname: nickname || undefined, avatarUrl: avatarUrl || undefined, password: newPassword || undefined }),
+        body: JSON.stringify({ name, nickname: nickname || undefined, avatarUrl: avatarUrl || undefined, password: newPassword || undefined, currentPassword: currentPassword || undefined }),
       });
       setSaved(true);
       setNewPassword("");
+      setCurrentPassword("");
       setTimeout(() => setSaved(false), 3000);
     } catch {
       // ignore
@@ -361,12 +363,23 @@ export default function CabinetPage() {
                   </div>
 
                   <div>
+                    <label className="block text-sm text-text-secondary mb-2 tracking-wide">Текущий пароль</label>
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      placeholder="Обязательно при смене пароля"
+                      className="input-dark"
+                    />
+                  </div>
+
+                  <div>
                     <label className="block text-sm text-text-secondary mb-2 tracking-wide">Новый пароль</label>
                     <input
                       type="password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      placeholder="Оставьте пустым, если не меняете"
+                      placeholder="Оставь пустым, если не меняешь"
                       className="input-dark"
                       minLength={6}
                     />

@@ -14,6 +14,29 @@ export async function POST(
 
   const { id: lessonId } = await params;
 
+  // Проверяем что пользователь купил курс, к которому принадлежит этот урок
+  const lesson = await prisma.lesson.findUnique({
+    where: { id: lessonId },
+    select: { courseId: true },
+  });
+
+  if (!lesson) {
+    return NextResponse.json({ error: "Урок не найден" }, { status: 404 });
+  }
+
+  const purchase = await prisma.purchase.findUnique({
+    where: {
+      userId_courseId: {
+        userId: session.user.id,
+        courseId: lesson.courseId,
+      },
+    },
+  });
+
+  if (!purchase) {
+    return NextResponse.json({ error: "Курс не куплен" }, { status: 403 });
+  }
+
   await prisma.lessonProgress.upsert({
     where: {
       userId_lessonId: { userId: session.user.id, lessonId },

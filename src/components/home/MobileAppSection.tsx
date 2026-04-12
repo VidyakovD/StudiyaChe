@@ -99,11 +99,11 @@ export default function MobileAppSection() {
                   </li>
                   <li className="flex gap-3 items-start">
                     <span className="w-6 h-6 rounded-lg bg-accent/10 text-accent font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">2</span>
-                    <span className="text-text-secondary">Нажми <span className="text-text-primary font-medium">меню ⋮</span> (три точки)</span>
+                    <span className="text-text-secondary">Нажми <span className="text-text-primary font-medium">меню ⋮</span> (три точки вверху справа)</span>
                   </li>
                   <li className="flex gap-3 items-start">
                     <span className="w-6 h-6 rounded-lg bg-accent/10 text-accent font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">3</span>
-                    <span className="text-text-secondary">Выбери <span className="text-text-primary font-medium">«Установить приложение»</span></span>
+                    <span className="text-text-secondary">Выбери <span className="text-text-primary font-medium">«Добавить на главный экран»</span> или <span className="text-text-primary font-medium">«Установить»</span></span>
                   </li>
                 </ol>
               </div>

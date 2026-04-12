@@ -3,16 +3,20 @@
 import { useState } from "react";
 import { motion, AnimatePresence, useMotionValue, useSpring } from "framer-motion";
 import { useSession } from "next-auth/react";
-import { Menu, X, User, LogIn, Shield } from "lucide-react";
+import { Menu, X, User, LogIn, Shield, Send } from "lucide-react";
 
 function MagneticLink({
   href,
   children,
   className = "",
+  target,
+  rel,
 }: {
   href: string;
   children: React.ReactNode;
   className?: string;
+  target?: string;
+  rel?: string;
 }) {
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -23,6 +27,8 @@ function MagneticLink({
     <motion.a
       href={href}
       className={className}
+      target={target}
+      rel={rel}
       style={{ x: springX, y: springY }}
       onMouseMove={(e) => {
         const rect = e.currentTarget.getBoundingClientRect();
@@ -61,13 +67,23 @@ export default function Header() {
         </MagneticLink>
 
         {/* Desktop nav */}
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden md:flex items-center gap-6">
           <a
             href="/#courses"
             className="nav-link text-text-secondary hover:text-text-primary"
           >
             Каталог
           </a>
+
+          <MagneticLink
+            href="https://t.me/studiyaCHE"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 text-[#2AABEE] hover:text-[#2AABEE]/80 transition-colors text-sm"
+          >
+            <Send className="w-3.5 h-3.5" />
+            <span>Telegram</span>
+          </MagneticLink>
 
           {session?.user ? (
             <div className="flex items-center gap-4">
@@ -152,6 +168,7 @@ export default function Header() {
             >
               {[
                 { href: "/#courses", label: "Каталог", icon: null, color: "text-text-secondary hover:text-text-primary" },
+                { href: "https://t.me/studiyaCHE", label: "Telegram", icon: Send, color: "text-[#2AABEE] hover:bg-[#2AABEE]/5", external: true },
                 ...(session?.user?.role === "ADMIN"
                   ? [{ href: "/admin", label: "Админ-панель", icon: Shield, color: "text-neon-purple hover:bg-neon-purple/5" }]
                   : []),
@@ -162,6 +179,8 @@ export default function Header() {
                 <motion.a
                   key={item.href}
                   href={item.href}
+                  target={"external" in item ? "_blank" : undefined}
+                  rel={"external" in item ? "noopener noreferrer" : undefined}
                   className={`py-3 px-4 rounded-xl transition-all flex items-center gap-2 ${item.color}`}
                   onClick={() => setMobileOpen(false)}
                   variants={{

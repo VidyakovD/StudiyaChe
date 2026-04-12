@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import SessionProvider from "@/components/providers/SessionProvider";
 import PageTransition from "@/components/providers/PageTransition";
@@ -18,6 +18,24 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Студия ЧЕ - Обучающая платформа",
   description: "Курсы по видеопроизводству, ИИ генерации и ИИ для бизнеса",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Студия ЧЕ",
+  },
+  icons: {
+    icon: "/icons/icon.svg",
+    apple: "/icons/icon-192.png",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0a0a0f",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
 };
 
 export default function RootLayout({

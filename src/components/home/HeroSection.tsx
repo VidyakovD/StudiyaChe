@@ -192,36 +192,6 @@ export default function HeroSection() {
           </MagneticButton>
         </motion.div>
 
-        {/* Stats — staggered */}
-        <motion.div
-          className="mt-20 grid grid-cols-3 gap-8 max-w-lg mx-auto"
-          variants={fadeInUp}
-        >
-          {[
-            { value: "10+", label: "Курсов" },
-            { value: "200+", label: "Уроков" },
-            { value: "500+", label: "Студентов" },
-          ].map((stat, i) => (
-            <motion.div
-              key={stat.label}
-              className="text-center"
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{
-                duration: 0.6,
-                delay: 1 + i * 0.12,
-                ease: easing.outQuart,
-              }}
-            >
-              <div className="text-3xl md:text-4xl font-bold text-accent neon-text tracking-tight">
-                {stat.value}
-              </div>
-              <div className="text-sm text-text-muted mt-1 tracking-wide">
-                {stat.label}
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
       </motion.div>
 
       {/* Bottom fade */}

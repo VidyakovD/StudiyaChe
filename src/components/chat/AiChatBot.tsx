@@ -117,15 +117,15 @@ export default function AiChatBot() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            className="absolute bottom-20 right-0 w-[380px] max-h-[560px] rounded-2xl overflow-hidden flex flex-col"
+            className="fixed inset-0 sm:absolute sm:inset-auto sm:bottom-20 sm:right-0 w-full sm:w-[380px] h-full sm:h-auto sm:max-h-[560px] sm:rounded-2xl overflow-hidden flex flex-col"
             style={{
               background: "rgba(16, 16, 23, 0.98)",
               border: "1px solid rgba(255, 107, 43, 0.15)",
               boxShadow: "0 0 30px rgba(255, 107, 43, 0.1), 0 25px 60px rgba(0, 0, 0, 0.6)",
             }}
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.3, ease: "easeOut" }}
           >
             {/* Header */}
@@ -155,7 +155,7 @@ export default function AiChatBot() {
             </div>
 
             {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-[300px] max-h-[360px]">
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 min-h-0">
               {messages.map((msg) => (
                 <motion.div
                   key={msg.id}
@@ -227,7 +227,7 @@ export default function AiChatBot() {
             {/* Input */}
             <form
               onSubmit={handleSubmit}
-              className="px-4 py-3 flex gap-2 shrink-0"
+              className="px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex gap-2 shrink-0"
               style={{ borderTop: "1px solid rgba(255,255,255,0.06)" }}
             >
               <input

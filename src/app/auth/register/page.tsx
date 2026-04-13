@@ -2,13 +2,11 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useRouter } from "next/navigation";
-import { UserPlus, Mail, Lock, User, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { UserPlus, Mail, Lock, User, Eye, EyeOff, AlertCircle, CheckCircle, Inbox } from "lucide-react";
 import { fadeInUp, staggerContainer, easing } from "@/hooks/useAnimations";
 import NeuralNetwork from "@/components/home/NeuralNetwork";
 
 export default function RegisterPage() {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -16,6 +14,7 @@ export default function RegisterPage() {
   const [agreeOffer, setAgreeOffer] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +36,7 @@ export default function RegisterPage() {
         return;
       }
 
-      router.push("/auth/login?registered=true");
+      setSuccess(true);
     } catch {
       setError("Ошибка сервера");
       setLoading(false);
@@ -77,9 +76,47 @@ export default function RegisterPage() {
               <a href="/" className="text-2xl font-bold neon-text text-accent inline-block mb-4 tracking-tight">
                 Студия ЧЕ
               </a>
-              <h1 className="text-2xl font-bold text-text-primary mb-2">Регистрация</h1>
-              <p className="text-text-muted">Создайте аккаунт для доступа к курсам</p>
+              {!success && (
+                <>
+                  <h1 className="text-2xl font-bold text-text-primary mb-2">Регистрация</h1>
+                  <p className="text-text-muted">Создай аккаунт для доступа к курсам</p>
+                </>
+              )}
             </motion.div>
+
+            <AnimatePresence mode="wait">
+              {success ? (
+                <motion.div
+                  key="success"
+                  className="text-center py-4"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.4, ease: easing.outQuart }}
+                >
+                  <div className="w-16 h-16 rounded-2xl bg-success/15 flex items-center justify-center mx-auto mb-5">
+                    <Inbox className="w-8 h-8 text-success" />
+                  </div>
+                  <h2 className="text-xl font-bold text-text-primary mb-2">Проверь почту!</h2>
+                  <p className="text-text-secondary mb-2">
+                    Мы отправили письмо на
+                  </p>
+                  <p className="text-accent font-medium mb-4">{email}</p>
+                  <p className="text-text-muted text-sm mb-6">
+                    Нажми на кнопку в письме, чтобы подтвердить email и активировать аккаунт.
+                    Если не видишь — проверь папку «Спам».
+                  </p>
+                  <a
+                    href="/auth/login"
+                    className="btn-primary inline-flex items-center gap-2"
+                  >
+                    <span className="relative z-10 flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4" />
+                      Перейти к входу
+                    </span>
+                  </a>
+                </motion.div>
+              ) : null}
+            </AnimatePresence>
 
             <AnimatePresence>
               {error && (
@@ -96,7 +133,7 @@ export default function RegisterPage() {
               )}
             </AnimatePresence>
 
-            <motion.form onSubmit={handleSubmit} className="space-y-5" variants={fadeInUp}>
+            {!success && <motion.form onSubmit={handleSubmit} className="space-y-5" variants={fadeInUp}>
               <div>
                 <label className="block text-sm text-text-secondary mb-2 tracking-wide">Имя</label>
                 <div className="relative group">
@@ -186,17 +223,19 @@ export default function RegisterPage() {
                   {loading ? "Регистрация..." : "Создать аккаунт"}
                 </span>
               </motion.button>
-            </motion.form>
+            </motion.form>}
 
-            <motion.p
-              className="text-center mt-6 text-text-muted text-sm"
-              variants={fadeInUp}
-            >
-              Уже есть аккаунт?{" "}
-              <a href="/auth/login" className="text-accent hover:text-accent-light transition-colors">
-                Войти
-              </a>
-            </motion.p>
+            {!success && (
+              <motion.p
+                className="text-center mt-6 text-text-muted text-sm"
+                variants={fadeInUp}
+              >
+                Уже есть аккаунт?{" "}
+                <a href="/auth/login" className="text-accent hover:text-accent-light transition-colors">
+                  Войти
+                </a>
+              </motion.p>
+            )}
           </motion.div>
         </div>
       </motion.div>

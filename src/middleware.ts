@@ -85,7 +85,7 @@ export function middleware(req: NextRequest) {
 
 export const config = {
   matcher: [
-    // Всё кроме статики и _next
-    "/((?!_next/static|_next/image|favicon.ico|icons/|manifest.json).*)",
+    // Только API-роуты — не трогаем фронтенд и статику
+    "/api/:path*",
   ],
 };

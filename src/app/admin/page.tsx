@@ -16,6 +16,9 @@ import {
   Layers,
   ChevronRight,
   MessageCircle,
+  Mail,
+  Send,
+  CheckCircle,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import Header from "@/components/layout/Header";
@@ -59,8 +62,11 @@ export default function AdminPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [users, setUsers] = useState<UserItem[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [tab, setTab] = useState<"dashboard" | "courses" | "users" | "categories" | "chats">("dashboard");
+  const [tab, setTab] = useState<"dashboard" | "courses" | "users" | "categories" | "chats" | "broadcast">("dashboard");
   const [newCategory, setNewCategory] = useState({ name: "", slug: "" });
+  const [broadcast, setBroadcast] = useState({ subject: "", message: "" });
+  const [broadcastSending, setBroadcastSending] = useState(false);
+  const [broadcastResult, setBroadcastResult] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/auth/login");
@@ -145,6 +151,7 @@ export default function AdminPage() {
               { key: "users" as const, label: "Пользователи", icon: Users },
               { key: "categories" as const, label: "Категории", icon: Layers },
               { key: "chats" as const, label: "Чаты", icon: MessageCircle },
+              { key: "broadcast" as const, label: "Рассылка", icon: Mail },
             ].map(({ key, label, icon: Icon }) => (
               <button
                 key={key}
@@ -338,6 +345,120 @@ export default function AdminPage() {
                   Открыть центр чатов
                 </span>
               </a>
+            </div>
+          )}
+
+          {/* Broadcast / Рассылка */}
+          {tab === "broadcast" && (
+            <div className="max-w-2xl">
+              <div className="gradient-border p-8">
+                <div className="card-glow" />
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
+                      <Mail className="w-5 h-5 text-accent" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold text-text-primary">Email-рассылка</h2>
+                      <p className="text-text-muted text-sm">
+                        Отправка всем пользователям с подтверждённым email
+                        ({users.filter(u => u.role !== "ADMIN").length} получателей)
+                      </p>
+                    </div>
+                  </div>
+
+                  {broadcastResult ? (
+                    <motion.div
+                      className="text-center py-8"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                    >
+                      <div className="w-16 h-16 rounded-2xl bg-green-500/15 flex items-center justify-center mx-auto mb-4">
+                        <CheckCircle className="w-8 h-8 text-green-400" />
+                      </div>
+                      <p className="text-text-primary font-medium mb-2">{broadcastResult}</p>
+                      <button
+                        onClick={() => {
+                          setBroadcastResult(null);
+                          setBroadcast({ subject: "", message: "" });
+                        }}
+                        className="text-accent hover:text-accent-light transition-colors text-sm mt-4"
+                      >
+                        Отправить ещё одну рассылку
+                      </button>
+                    </motion.div>
+                  ) : (
+                    <form
+                      onSubmit={async (e) => {
+                        e.preventDefault();
+                        if (!confirm(`Отправить рассылку "${broadcast.subject}" всем пользователям?`)) return;
+                        setBroadcastSending(true);
+                        try {
+                          const res = await fetch("/api/admin/broadcast", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(broadcast),
+                          });
+                          const data = await res.json();
+                          if (res.ok) {
+                            setBroadcastResult(data.message);
+                          } else {
+                            alert(data.error || "Ошибка рассылки");
+                          }
+                        } catch {
+                          alert("Ошибка сервера");
+                        }
+                        setBroadcastSending(false);
+                      }}
+                      className="space-y-5"
+                    >
+                      <div>
+                        <label className="block text-sm text-text-secondary mb-2">Тема письма</label>
+                        <input
+                          type="text"
+                          value={broadcast.subject}
+                          onChange={(e) => setBroadcast({ ...broadcast, subject: e.target.value })}
+                          placeholder="Например: Новый курс уже доступен!"
+                          required
+                          className="input-dark"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm text-text-secondary mb-2">Текст рассылки</label>
+                        <textarea
+                          value={broadcast.message}
+                          onChange={(e) => setBroadcast({ ...broadcast, message: e.target.value })}
+                          placeholder="Напиши текст письма. Переносы строк сохранятся."
+                          required
+                          rows={8}
+                          className="input-dark resize-y min-h-[120px]"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={broadcastSending || !broadcast.subject || !broadcast.message}
+                        className="btn-primary flex items-center gap-2 disabled:opacity-50"
+                      >
+                        <span className="relative z-10 flex items-center gap-2">
+                          {broadcastSending ? (
+                            <>
+                              <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                              Отправка...
+                            </>
+                          ) : (
+                            <>
+                              <Send className="w-5 h-5" />
+                              Отправить рассылку
+                            </>
+                          )}
+                        </span>
+                      </button>
+                    </form>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>

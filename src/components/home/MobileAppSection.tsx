@@ -53,7 +53,7 @@ export default function MobileAppSection() {
                     <TabletSmartphone className="w-6 h-6 text-text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-text-primary font-semibold tracking-tight">iPhone / iPad</h3>
+                    <h3 className="text-text-primary font-semibold tracking-tight">iOS</h3>
                     <p className="text-text-muted text-sm">Safari</p>
                   </div>
                 </div>

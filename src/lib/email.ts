@@ -264,3 +264,34 @@ export function sendPasswordResetEmail(to: string, token: string): void {
     </p>
   `);
 }
+
+/* ================================================================
+   5. Рассылка от админа (произвольная тема + текст)
+   ================================================================ */
+export function sendBroadcastEmail(
+  to: string,
+  userName: string,
+  subject: string,
+  message: string
+): void {
+  // Заменяем переносы строк на <br> для HTML
+  const htmlMessage = message.replace(/\n/g, "<br>");
+
+  sendEmail(to, subject, `
+    <p style="color:#a0a0b0; font-size:15px; margin:0 0 20px;">
+      Привет${userName ? `, ${userName}` : ""}!
+    </p>
+    <div style="color:#f0f0f5; font-size:16px; line-height:1.7; margin:0 0 24px;">
+      ${htmlMessage}
+    </div>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="center" style="padding:8px 0 16px;">
+          <a href="${BASE_URL}" style="display:inline-block; background:linear-gradient(135deg, #ff6b2b, #ff8c42); color:#ffffff; font-weight:600; font-size:16px; padding:14px 40px; border-radius:50px; text-decoration:none;">
+            Перейти на платформу
+          </a>
+        </td>
+      </tr>
+    </table>
+  `);
+}

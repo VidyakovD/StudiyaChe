@@ -98,7 +98,26 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  await prisma.course.delete({ where: { id } });
 
-  return NextResponse.json({ success: true });
+  try {
+    // Удаляем связанные данные (которые не имеют onDelete: Cascade)
+    // Сначала прогресс уроков (через уроки курса)
+    const lessons = await prisma.lesson.findMany({ where: { courseId: id }, select: { id: true } });
+    const lessonIds = lessons.map(l => l.id);
+    if (lessonIds.length > 0) {
+      await prisma.lessonProgress.deleteMany({ where: { lessonId: { in: lessonIds } } });
+    }
+
+    // Покупки и сообщения чата
+    await prisma.chatMessage.deleteMany({ where: { courseId: id } });
+    await prisma.purchase.deleteMany({ where: { courseId: id } });
+
+    // Сам курс (уроки и модули удалятся каскадно)
+    await prisma.course.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
+  } catch (e) {
+    console.error("[Admin] Delete course error:", e);
+    return NextResponse.json({ error: "Ошибка удаления курса" }, { status: 500 });
+  }
 }

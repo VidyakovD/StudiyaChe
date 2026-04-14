@@ -19,6 +19,7 @@ interface Lesson {
   videoUrl: string;
   imageUrl: string;
   order: number;
+  type: string;
   links: string;
   homework: string;
   moduleId: string;
@@ -100,6 +101,7 @@ export default function EditCoursePage() {
           videoUrl: "",
           imageUrl: "",
           order: form.lessons.length + 1,
+          type: "LESSON",
           links: "",
           homework: "",
           moduleId: "",
@@ -385,7 +387,17 @@ export default function EditCoursePage() {
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <GripVertical className="w-4 h-4 text-text-muted" />
-                          <span className="text-accent font-bold">Урок {lesson.order}</span>
+                          <span className={`font-bold ${lesson.type === "MASTERCLASS" ? "text-neon-purple" : "text-accent"}`}>
+                            {lesson.type === "MASTERCLASS" ? "МК" : "Урок"} {lesson.order}
+                          </span>
+                          <select
+                            value={lesson.type || "LESSON"}
+                            onChange={(e) => updateLesson(idx, "type", e.target.value)}
+                            className="bg-bg-secondary border border-border-default rounded-lg px-2 py-1 text-xs text-text-secondary"
+                          >
+                            <option value="LESSON">Урок</option>
+                            <option value="MASTERCLASS">Мастер-класс</option>
+                          </select>
                           {form.modules.length > 0 && (
                             <select
                               value={lesson.moduleId || ""}

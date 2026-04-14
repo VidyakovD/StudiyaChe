@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Play, Clock, BookOpen } from "lucide-react";
+import { Play, Clock, BookOpen, Award } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 
 interface CourseCardProps {
@@ -12,6 +12,7 @@ interface CourseCardProps {
   imageUrl?: string | null;
   category: string;
   lessonsCount: number;
+  masterclassesCount?: number;
   index?: number;
 }
 
@@ -23,6 +24,7 @@ export default function CourseCard({
   imageUrl,
   category,
   lessonsCount,
+  masterclassesCount = 0,
   index = 0,
 }: CourseCardProps) {
   return (
@@ -88,11 +90,17 @@ export default function CourseCard({
         </h3>
         <p className="text-sm text-text-muted mb-4 line-clamp-2 leading-relaxed">{description}</p>
 
-        <div className="flex items-center gap-4 text-xs text-text-muted mb-4">
+        <div className="flex items-center gap-4 text-xs text-text-muted mb-4 flex-wrap">
           <span className="flex items-center gap-1.5">
             <BookOpen className="w-3.5 h-3.5" />
             {lessonsCount} уроков
           </span>
+          {masterclassesCount > 0 && (
+            <span className="flex items-center gap-1.5 text-neon-purple">
+              <Award className="w-3.5 h-3.5" />
+              {masterclassesCount} мастер-классов
+            </span>
+          )}
           <span className="flex items-center gap-1.5">
             <Clock className="w-3.5 h-3.5" />
             В своём темпе

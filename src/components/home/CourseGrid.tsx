@@ -13,7 +13,7 @@ interface Course {
   price: number;
   imageUrl: string | null;
   category: { id: string; name: string; slug: string };
-  _count: { lessons: number };
+  _count: { lessons: number; masterclasses: number };
 }
 
 interface Category {
@@ -221,6 +221,7 @@ export default function CourseGrid() {
                 imageUrl={course.imageUrl}
                 category={course.category.name}
                 lessonsCount={course._count?.lessons || 0}
+                masterclassesCount={course._count?.masterclasses || 0}
                 index={index}
               />
             ))}

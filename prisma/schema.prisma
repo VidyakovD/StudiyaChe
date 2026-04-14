@@ -12,6 +12,11 @@ enum Role {
   ADMIN
 }
 
+enum LessonType {
+  LESSON
+  MASTERCLASS
+}
+
 model User {
   id            String    @id @default(cuid())
   name          String
@@ -69,16 +74,17 @@ model Module {
 }
 
 model Lesson {
-  id          String  @id @default(cuid())
+  id          String      @id @default(cuid())
   courseId     String
-  course       Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course       Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
   moduleId     String?
-  module       Module?  @relation(fields: [moduleId], references: [id])
+  module       Module?    @relation(fields: [moduleId], references: [id])
   title        String
   description  String?
   videoUrl     String?
   imageUrl     String?
   order        Int
+  type         LessonType @default(LESSON)
   links        String?
   homework     String?
 

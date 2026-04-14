@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Play, BookOpen, Clock, CheckCircle, Lock, ArrowLeft, ShoppingCart, Star } from "lucide-react";
+import { Play, BookOpen, Clock, CheckCircle, Lock, ArrowLeft, ShoppingCart, Star, Award } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -18,7 +18,7 @@ interface Course {
   imageUrl: string | null;
   category: { name: string };
   modules: { id: string; title: string; order: number }[];
-  lessons: { id: string; title: string; order: number; description: string | null; moduleId: string | null }[];
+  lessons: { id: string; title: string; order: number; description: string | null; moduleId: string | null; type: string }[];
   recommendedCourseId: string | null;
   discountPercent: number | null;
 }
@@ -158,7 +158,10 @@ export default function CoursePage() {
                     variants={fadeInLeft}
                   >
                     {[
-                      { icon: BookOpen, text: `${course.lessons.length} уроков` },
+                      { icon: BookOpen, text: `${course.lessons.filter(l => l.type !== "MASTERCLASS").length} уроков` },
+                      ...(course.lessons.filter(l => l.type === "MASTERCLASS").length > 0
+                        ? [{ icon: Award, text: `${course.lessons.filter(l => l.type === "MASTERCLASS").length} мастер-классов` }]
+                        : []),
                       { icon: Clock, text: "В своём темпе" },
                       { icon: Star, text: "Доступ навсегда" },
                     ].map(({ icon: Icon, text }) => (
@@ -292,7 +295,10 @@ export default function CoursePage() {
             >
               Программа курса
               <span className="text-text-muted font-normal text-lg ml-3">
-                {course.lessons.length} уроков
+                {course.lessons.filter(l => l.type !== "MASTERCLASS").length} уроков
+                {course.lessons.filter(l => l.type === "MASTERCLASS").length > 0 && (
+                  <span className="text-neon-purple"> · {course.lessons.filter(l => l.type === "MASTERCLASS").length} мастер-классов</span>
+                )}
               </span>
             </motion.h2>
 
@@ -330,7 +336,8 @@ export default function CoursePage() {
                   </div>
                 ));
 
-                function renderLesson(lesson: { id: string; title: string; order: number; description: string | null; moduleId: string | null }, idx: number) {
+                function renderLesson(lesson: { id: string; title: string; order: number; description: string | null; moduleId: string | null; type: string }, idx: number) {
+                  const isMasterclass = lesson.type === "MASTERCLASS";
                   return (
                     <motion.div
                       key={lesson.id}
@@ -341,11 +348,24 @@ export default function CoursePage() {
                       transition={{ duration: 0.4, delay: idx * 0.04, ease: easing.outQuart }}
                       whileHover={{ x: 4 }}
                     >
-                      <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center shrink-0 transition-colors group-hover:bg-accent/15">
-                        <span className="text-accent font-bold text-sm">{lesson.order}</span>
+                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                        isMasterclass
+                          ? "bg-neon-purple/10 group-hover:bg-neon-purple/15"
+                          : "bg-accent/10 group-hover:bg-accent/15"
+                      }`}>
+                        {isMasterclass ? (
+                          <Award className="w-5 h-5 text-neon-purple" />
+                        ) : (
+                          <span className="text-accent font-bold text-sm">{lesson.order}</span>
+                        )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-text-primary font-medium truncate tracking-tight">{lesson.title}</h3>
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-text-primary font-medium truncate tracking-tight">{lesson.title}</h3>
+                          {isMasterclass && (
+                            <span className="text-[10px] font-semibold text-neon-purple bg-neon-purple/10 px-1.5 py-0.5 rounded-full shrink-0">МК</span>
+                          )}
+                        </div>
                         {lesson.description && (
                           <p className="text-sm text-text-muted truncate">{lesson.description}</p>
                         )}

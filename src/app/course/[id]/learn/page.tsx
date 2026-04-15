@@ -352,33 +352,17 @@ export default function LearnPage() {
                   if (links.length === 0) return null;
                   return (
                     <div className="gradient-border p-5 mb-6">
-                      <h3 className="text-text-primary font-semibold mb-4 flex items-center gap-2">
-                        <ExternalLink className="w-4 h-4 text-accent" />
-                        Полезные ссылки
-                      </h3>
-                      <div className="space-y-3">
+                      <h3 className="text-text-primary font-semibold mb-4">Полезные ссылки</h3>
+                      <div className="space-y-2">
                         {links.map((link, i) => (
                           <a
                             key={i}
                             href={link.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-start gap-3 p-3 rounded-xl bg-accent/5 border border-accent/10 hover:border-accent/30 hover:bg-accent/10 transition-all group"
+                            className="block text-accent underline underline-offset-4 decoration-accent/40 hover:decoration-accent transition-colors text-sm"
                           >
-                            <div className="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-accent/25 transition-colors">
-                              <ExternalLink className="w-4 h-4 text-accent" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="text-accent font-medium text-sm group-hover:text-accent-light transition-colors truncate">
-                                {link.label || link.url}
-                              </div>
-                              {link.description && (
-                                <div className="text-text-muted text-xs mt-0.5">{link.description}</div>
-                              )}
-                              {link.label && (
-                                <div className="text-text-muted/50 text-xs mt-0.5 truncate">{link.url}</div>
-                              )}
-                            </div>
+                            {link.description || link.label || link.url}
                           </a>
                         ))}
                       </div>

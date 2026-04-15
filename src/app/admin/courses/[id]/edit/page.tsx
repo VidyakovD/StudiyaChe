@@ -3,8 +3,28 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Save, Plus, Trash2, ArrowLeft, GripVertical, Upload, Loader2 } from "lucide-react";
+import { Save, Plus, Trash2, ArrowLeft, GripVertical, Upload, Link2 } from "lucide-react";
 import Header from "@/components/layout/Header";
+
+interface LinkItem {
+  url: string;
+  label: string;
+  description: string;
+}
+
+function parseLinks(linksStr: string): LinkItem[] {
+  if (!linksStr) return [];
+  try {
+    const parsed = JSON.parse(linksStr);
+    if (Array.isArray(parsed)) return parsed as LinkItem[];
+  } catch {}
+  // Legacy plain-text format
+  return linksStr.split("\n").filter((l) => l.trim()).map((l) => ({ url: l.trim(), label: "", description: "" }));
+}
+
+function serializeLinks(links: LinkItem[]): string {
+  return JSON.stringify(links);
+}
 
 interface ModuleItem {
   id?: string;
@@ -481,12 +501,81 @@ export default function EditCoursePage() {
                         className="input-dark"
                       />
 
-                      <textarea
-                        value={lesson.links}
-                        onChange={(e) => updateLesson(idx, "links", e.target.value)}
-                        placeholder="Полезные ссылки (по одной на строку)"
-                        className="input-dark min-h-[60px] resize-y"
-                      />
+                      {/* Полезные ссылки */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs text-text-muted flex items-center gap-1.5">
+                            <Link2 className="w-3 h-3" />
+                            Полезные ссылки
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const links = parseLinks(lesson.links);
+                              links.push({ url: "", label: "", description: "" });
+                              updateLesson(idx, "links", serializeLinks(links));
+                            }}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-accent/10 text-accent border border-accent/20 text-xs font-medium hover:bg-accent/15 transition-colors"
+                          >
+                            <Plus className="w-3 h-3" />
+                            Добавить ссылку
+                          </button>
+                        </div>
+                        <div className="space-y-2">
+                          {parseLinks(lesson.links).map((link, li) => (
+                            <div key={li} className="bg-bg-secondary rounded-xl p-3 space-y-2 border border-border-default">
+                              <div className="flex gap-2">
+                                <input
+                                  type="text"
+                                  value={link.url}
+                                  onChange={(e) => {
+                                    const links = parseLinks(lesson.links);
+                                    links[li] = { ...links[li], url: e.target.value };
+                                    updateLesson(idx, "links", serializeLinks(links));
+                                  }}
+                                  placeholder="https://... (сама ссылка)"
+                                  className="input-dark flex-1 !py-1.5 text-xs"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const links = parseLinks(lesson.links).filter((_, i) => i !== li);
+                                    updateLesson(idx, "links", serializeLinks(links));
+                                  }}
+                                  className="p-1.5 text-text-muted hover:text-red-400 transition-colors shrink-0"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <input
+                                type="text"
+                                value={link.label}
+                                onChange={(e) => {
+                                  const links = parseLinks(lesson.links);
+                                  links[li] = { ...links[li], label: e.target.value };
+                                  updateLesson(idx, "links", serializeLinks(links));
+                                }}
+                                placeholder="Текст для отображения пользователю"
+                                className="input-dark !py-1.5 text-xs"
+                              />
+                              <input
+                                type="text"
+                                value={link.description}
+                                onChange={(e) => {
+                                  const links = parseLinks(lesson.links);
+                                  links[li] = { ...links[li], description: e.target.value };
+                                  updateLesson(idx, "links", serializeLinks(links));
+                                }}
+                                placeholder="Описание"
+                                className="input-dark !py-1.5 text-xs"
+                              />
+                            </div>
+                          ))}
+                          {parseLinks(lesson.links).length === 0 && (
+                            <p className="text-xs text-text-muted/50 text-center py-2">Нет ссылок</p>
+                          )}
+                        </div>
+                      </div>
 
                       <textarea
                         value={lesson.homework}

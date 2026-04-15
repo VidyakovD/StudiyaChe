@@ -339,27 +339,52 @@ export default function LearnPage() {
                 )}
 
                 {/* Links */}
-                {activeLesson.links && (
-                  <div className="gradient-border p-5 mb-6">
-                    <h3 className="text-text-primary font-semibold mb-3 flex items-center gap-2">
-                      <ExternalLink className="w-4 h-4 text-accent" />
-                      Полезные ссылки
-                    </h3>
-                    <div className="space-y-2">
-                      {activeLesson.links.split("\n").map((link, i) => (
-                        <a
-                          key={i}
-                          href={link.trim()}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block text-accent hover:text-accent-light transition-colors text-sm truncate"
-                        >
-                          {link.trim()}
-                        </a>
-                      ))}
+                {activeLesson.links && (() => {
+                  interface LinkItem { url: string; label: string; description: string; }
+                  let links: LinkItem[] = [];
+                  try {
+                    const parsed = JSON.parse(activeLesson.links);
+                    if (Array.isArray(parsed)) links = parsed as LinkItem[];
+                  } catch {
+                    // Legacy plain-text
+                    links = activeLesson.links.split("\n").filter((l) => l.trim()).map((l) => ({ url: l.trim(), label: "", description: "" }));
+                  }
+                  if (links.length === 0) return null;
+                  return (
+                    <div className="gradient-border p-5 mb-6">
+                      <h3 className="text-text-primary font-semibold mb-4 flex items-center gap-2">
+                        <ExternalLink className="w-4 h-4 text-accent" />
+                        Полезные ссылки
+                      </h3>
+                      <div className="space-y-3">
+                        {links.map((link, i) => (
+                          <a
+                            key={i}
+                            href={link.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-start gap-3 p-3 rounded-xl bg-accent/5 border border-accent/10 hover:border-accent/30 hover:bg-accent/10 transition-all group"
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-accent/15 flex items-center justify-center shrink-0 mt-0.5 group-hover:bg-accent/25 transition-colors">
+                              <ExternalLink className="w-4 h-4 text-accent" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-accent font-medium text-sm group-hover:text-accent-light transition-colors truncate">
+                                {link.label || link.url}
+                              </div>
+                              {link.description && (
+                                <div className="text-text-muted text-xs mt-0.5">{link.description}</div>
+                              )}
+                              {link.label && (
+                                <div className="text-text-muted/50 text-xs mt-0.5 truncate">{link.url}</div>
+                              )}
+                            </div>
+                          </a>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* Homework */}
                 {activeLesson.homework && (

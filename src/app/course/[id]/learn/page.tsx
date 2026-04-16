@@ -16,6 +16,7 @@ import {
 import Header from "@/components/layout/Header";
 import ProtectedVideoPlayer from "@/components/course/ProtectedVideoPlayer";
 import CourseChat from "@/components/course/CourseChat";
+import LessonCelebration from "@/components/course/LessonCelebration";
 
 interface Lesson {
   id: string;
@@ -54,6 +55,7 @@ export default function LearnPage() {
   const [loading, setLoading] = useState(true);
   const [completing, setCompleting] = useState(false);
   const [allCompleted, setAllCompleted] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
 
   useEffect(() => {
     fetch(`/api/courses/${params.id}?learn=true`)
@@ -90,6 +92,7 @@ export default function LearnPage() {
       });
 
       if (res.ok) {
+        setShowCelebration(true);
         const updatedLessons = course.lessons.map((l) =>
           l.id === activeLesson.id ? { ...l, completed: true } : l
         );
@@ -409,6 +412,10 @@ export default function LearnPage() {
         </main>
       </div>
       {course && <CourseChat courseId={course.id} />}
+      <LessonCelebration
+        show={showCelebration}
+        onComplete={() => setShowCelebration(false)}
+      />
     </>
   );
 }

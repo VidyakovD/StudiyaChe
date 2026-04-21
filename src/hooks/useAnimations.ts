@@ -7,7 +7,10 @@ import {
   useTransform,
   useScroll,
   type MotionValue,
+  type Variants,
 } from "framer-motion";
+
+const OUT_QUART: [number, number, number, number] = [0.25, 1, 0.5, 1];
 
 /* ================================================================
    MAGNETIC HOVER — buttons pull toward cursor
@@ -68,7 +71,7 @@ export function useParallax(distance = 100) {
 /* ================================================================
    STAGGER REVEAL VARIANTS — for framer-motion
    ================================================================ */
-export const staggerContainer = {
+export const staggerContainer: Variants = {
   hidden: {},
   visible: {
     transition: {
@@ -78,7 +81,7 @@ export const staggerContainer = {
   },
 };
 
-export const fadeInUp = {
+export const fadeInUp: Variants = {
   hidden: {
     opacity: 0,
     y: 24,
@@ -90,38 +93,38 @@ export const fadeInUp = {
     filter: "blur(0px)",
     transition: {
       duration: 0.6,
-      ease: [0.25, 1, 0.5, 1], // ease-out-quart
+      ease: OUT_QUART,
     },
   },
 };
 
-export const fadeInLeft = {
+export const fadeInLeft: Variants = {
   hidden: { opacity: 0, x: -24, filter: "blur(6px)" },
   visible: {
     opacity: 1,
     x: 0,
     filter: "blur(0px)",
-    transition: { duration: 0.5, ease: [0.25, 1, 0.5, 1] },
+    transition: { duration: 0.5, ease: OUT_QUART },
   },
 };
 
-export const fadeInRight = {
+export const fadeInRight: Variants = {
   hidden: { opacity: 0, x: 24, filter: "blur(6px)" },
   visible: {
     opacity: 1,
     x: 0,
     filter: "blur(0px)",
-    transition: { duration: 0.5, ease: [0.25, 1, 0.5, 1] },
+    transition: { duration: 0.5, ease: OUT_QUART },
   },
 };
 
-export const scaleReveal = {
+export const scaleReveal: Variants = {
   hidden: { opacity: 0, scale: 0.95, filter: "blur(6px)" },
   visible: {
     opacity: 1,
     scale: 1,
     filter: "blur(0px)",
-    transition: { duration: 0.5, ease: [0.25, 1, 0.5, 1] },
+    transition: { duration: 0.5, ease: OUT_QUART },
   },
 };
 

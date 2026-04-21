@@ -3,6 +3,7 @@
    Отправка через Yandex Mail API (HTTPS, порт 443)
    SMTP порты закрыты на сервере — используем HTTP API
    ================================================================ */
+import { escapeHtml } from "./validation";
 
 const BASE_URL = process.env.NEXTAUTH_URL || "https://studiache.ru";
 const SMTP_USER = process.env.SMTP_USER || "";
@@ -147,7 +148,8 @@ export function sendPurchaseEmail(
   price: number,
   courseId: string
 ): void {
-  const courseUrl = `${BASE_URL}/course/${courseId}/learn`;
+  const safeCourseName = escapeHtml(courseName);
+  const courseUrl = `${BASE_URL}/course/${encodeURIComponent(courseId)}/learn`;
   const formattedPrice = new Intl.NumberFormat("ru-RU", {
     style: "currency",
     currency: "RUB",
@@ -165,7 +167,7 @@ export function sendPurchaseEmail(
       <tr>
         <td style="padding:20px 24px;">
           <p style="color:#6a6a7a; font-size:13px; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Курс</p>
-          <p style="color:#f0f0f5; font-size:18px; font-weight:600; margin:0 0 16px;">${courseName}</p>
+          <p style="color:#f0f0f5; font-size:18px; font-weight:600; margin:0 0 16px;">${safeCourseName}</p>
           <p style="color:#6a6a7a; font-size:13px; margin:0 0 4px; text-transform:uppercase; letter-spacing:1px;">Сумма</p>
           <p style="color:#ff6b2b; font-size:22px; font-weight:bold; margin:0;">${formattedPrice}</p>
         </td>
@@ -197,7 +199,9 @@ export function sendNewCourseNotification(
   courseId: string,
   price: number
 ): void {
-  const courseUrl = `${BASE_URL}/course/${courseId}`;
+  const safeCourseName = escapeHtml(courseName);
+  const safeCourseDescription = escapeHtml(courseDescription);
+  const courseUrl = `${BASE_URL}/course/${encodeURIComponent(courseId)}`;
   const formattedPrice = new Intl.NumberFormat("ru-RU", {
     style: "currency",
     currency: "RUB",
@@ -215,8 +219,8 @@ export function sendNewCourseNotification(
       <tr>
         <td style="padding:20px 24px;">
           <p style="color:#ff6b2b; font-size:13px; margin:0 0 8px; text-transform:uppercase; letter-spacing:1px; font-weight:600;">Новинка</p>
-          <p style="color:#f0f0f5; font-size:20px; font-weight:bold; margin:0 0 8px;">${courseName}</p>
-          <p style="color:#a0a0b0; font-size:14px; line-height:1.5; margin:0 0 12px;">${courseDescription}</p>
+          <p style="color:#f0f0f5; font-size:20px; font-weight:bold; margin:0 0 8px;">${safeCourseName}</p>
+          <p style="color:#a0a0b0; font-size:14px; line-height:1.5; margin:0 0 12px;">${safeCourseDescription}</p>
           <p style="color:#ff6b2b; font-size:20px; font-weight:bold; margin:0;">${formattedPrice}</p>
         </td>
       </tr>
@@ -274,12 +278,14 @@ export function sendBroadcastEmail(
   subject: string,
   message: string
 ): void {
-  // Заменяем переносы строк на <br> для HTML
-  const htmlMessage = message.replace(/\n/g, "<br>");
+  // Экранируем пользовательский ввод перед вставкой в HTML,
+  // переносы строк заменяем на <br>. Защита от XSS/HTML-injection в письмах.
+  const htmlMessage = escapeHtml(message).replace(/\n/g, "<br>");
+  const safeName = escapeHtml(userName);
 
   sendEmail(to, subject, `
     <p style="color:#a0a0b0; font-size:15px; margin:0 0 20px;">
-      Привет${userName ? `, ${userName}` : ""}!
+      Привет${safeName ? `, ${safeName}` : ""}!
     </p>
     <div style="color:#f0f0f5; font-size:16px; line-height:1.7; margin:0 0 24px;">
       ${htmlMessage}

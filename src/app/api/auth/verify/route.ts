@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { hashToken } from "@/lib/validation";
 
 export async function GET(req: NextRequest) {
   try {
     const token = req.nextUrl.searchParams.get("token");
     const baseUrl = process.env.NEXTAUTH_URL || "https://studiache.ru";
 
-    if (!token) {
+    if (!token || typeof token !== "string" || token.length > 256) {
       return new NextResponse(errorPage(baseUrl, "Ссылка повреждена"), {
         status: 400,
         headers: { "Content-Type": "text/html; charset=utf-8" },
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
     }
 
     const user = await prisma.user.findFirst({
-      where: { verifyToken: token },
+      where: { verifyToken: hashToken(token) },
     });
 
     if (!user) {
@@ -35,7 +36,8 @@ export async function GET(req: NextRequest) {
       status: 200,
       headers: { "Content-Type": "text/html; charset=utf-8" },
     });
-  } catch {
+  } catch (error) {
+    console.error("[Verify] error:", error);
     return new NextResponse("Ошибка сервера", { status: 500 });
   }
 }

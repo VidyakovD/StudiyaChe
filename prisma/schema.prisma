@@ -91,6 +91,8 @@ model Lesson {
   progress LessonProgress[]
 
   @@unique([courseId, order])
+  @@index([courseId])
+  @@index([moduleId])
 }
 
 model Purchase {
@@ -103,6 +105,8 @@ model Purchase {
   createdAt DateTime @default(now())
 
   @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
 }
 
 model LessonProgress {
@@ -115,6 +119,8 @@ model LessonProgress {
   completedAt DateTime?
 
   @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([lessonId])
 }
 
 model SiteSettings {
@@ -135,4 +141,5 @@ model ChatMessage {
   createdAt DateTime @default(now())
 
   @@index([courseId, createdAt])
+  @@index([userId])
 }

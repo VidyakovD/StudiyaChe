@@ -1,9 +1,12 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, type Variants } from "framer-motion";
 import { usePathname } from "next/navigation";
 
-const pageVariants = {
+const EASE_OUT_QUART: [number, number, number, number] = [0.25, 1, 0.5, 1];
+const EASE_IN_OUT_CUBIC: [number, number, number, number] = [0.77, 0, 0.175, 1];
+
+const pageVariants: Variants = {
   initial: {
     opacity: 0,
     y: 8,
@@ -15,7 +18,7 @@ const pageVariants = {
     filter: "blur(0px)",
     transition: {
       duration: 0.4,
-      ease: [0.25, 1, 0.5, 1],
+      ease: EASE_OUT_QUART,
     },
   },
   exit: {
@@ -24,7 +27,7 @@ const pageVariants = {
     filter: "blur(2px)",
     transition: {
       duration: 0.2,
-      ease: [0.77, 0, 0.175, 1],
+      ease: EASE_IN_OUT_CUBIC,
     },
   },
 };

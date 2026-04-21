@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parseBody, z, safeUrlSchema } from "@/lib/validation";
+
+const chatMessageSchema = z
+  .object({
+    text: z.string().trim().max(4000).optional(),
+    imageUrl: safeUrlSchema.optional().or(z.literal("")),
+  })
+  .refine((v) => (v.text && v.text.length > 0) || (v.imageUrl && v.imageUrl.length > 0), {
+    message: "Текст или изображение обязательны",
+  });
 
 async function verifyPurchase(userId: string, courseId: string) {
   const purchase = await prisma.purchase.findFirst({
@@ -70,20 +80,15 @@ export async function POST(
       );
     }
 
-    const { text, imageUrl } = await req.json();
-
-    if ((!text || typeof text !== "string" || text.trim().length === 0) && !imageUrl) {
-      return NextResponse.json(
-        { error: "Текст или изображение обязательны" },
-        { status: 400 }
-      );
-    }
+    const parsed = await parseBody(req, chatMessageSchema);
+    if (!parsed.ok) return parsed.response;
+    const { text, imageUrl } = parsed.data;
 
     const message = await prisma.chatMessage.create({
       data: {
         courseId,
         userId: session.user.id,
-        text: text?.trim() || "",
+        text: text || "",
         imageUrl: imageUrl || null,
       },
       include: {

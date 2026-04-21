@@ -46,11 +46,23 @@ export function middleware(req: NextRequest) {
   // === Rate limiting на auth эндпоинты ===
   const path = req.nextUrl.pathname;
 
-  // Логин/регистрация: 10 попыток за 15 минут
+  // Регистрация: отдельный жёсткий лимит — 3 аккаунта с IP за час.
+  // Защита от массового создания фейковых аккаунтов.
+  if (path === "/api/auth/register") {
+    if (isRateLimited(`register:${ip}`, 3, 60 * 60 * 1000)) {
+      return NextResponse.json(
+        { error: "Превышен лимит регистраций с вашего IP. Попробуйте через час." },
+        { status: 429 }
+      );
+    }
+  }
+
+  // Логин/forgot-password/reset: 10 попыток за 15 минут
   if (
     path === "/api/auth/callback/credentials" ||
     path === "/api/auth/register" ||
-    path === "/api/auth/forgot-password"
+    path === "/api/auth/forgot-password" ||
+    path === "/api/auth/reset-password"
   ) {
     if (isRateLimited(`auth:${ip}`, 10, 15 * 60 * 1000)) {
       return NextResponse.json(

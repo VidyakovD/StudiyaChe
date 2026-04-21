@@ -2,6 +2,35 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parseBody, z, safeUrlSchema } from "@/lib/validation";
+
+const moduleInputSchema = z.object({
+  id: z.string().optional(),
+  title: z.string().trim().max(200).optional(),
+});
+
+const lessonInputSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  description: z.string().trim().max(10000).nullish(),
+  videoUrl: safeUrlSchema.nullish().or(z.literal("")),
+  imageUrl: safeUrlSchema.nullish().or(z.literal("")),
+  links: z.string().trim().max(10000).nullish(),
+  homework: z.string().trim().max(10000).nullish(),
+  moduleId: z.string().nullish(),
+});
+
+const courseUpdateSchema = z.object({
+  title: z.string().trim().min(1).max(200).optional(),
+  description: z.string().trim().min(1).max(5000).optional(),
+  price: z.number().finite().min(0).max(10_000_000).optional(),
+  videoUrl: safeUrlSchema.nullish().or(z.literal("")),
+  imageUrl: safeUrlSchema.nullish().or(z.literal("")),
+  categoryId: z.string().trim().min(1).max(64).optional(),
+  recommendedCourseId: z.string().trim().max(64).nullish(),
+  discountPercent: z.number().int().min(0).max(100).nullish(),
+  modules: z.array(moduleInputSchema).max(100).optional(),
+  lessons: z.array(lessonInputSchema).max(500).optional(),
+});
 
 export async function GET(
   req: NextRequest,
@@ -35,57 +64,60 @@ export async function PUT(
   }
 
   const { id } = await params;
-  const body = await req.json();
-  const { lessons, modules, ...courseData } = body;
+  const parsed = await parseBody(req, courseUpdateSchema);
+  if (!parsed.ok) return parsed.response;
+  const { lessons, modules, ...courseData } = parsed.data;
 
-  // Update course
-  await prisma.course.update({
-    where: { id },
-    data: courseData,
-  });
-
-  // Sync modules: delete old, create new
-  const moduleMap: Record<string, string> = {};
-  await prisma.lesson.updateMany({ where: { courseId: id }, data: { moduleId: null } });
-  await prisma.module.deleteMany({ where: { courseId: id } });
-  if (modules && modules.length > 0) {
-    for (let i = 0; i < modules.length; i++) {
-      const m = modules[i] as Record<string, unknown>;
-      const created = await prisma.module.create({
-        data: {
-          courseId: id,
-          title: (m.title as string) || `Модуль ${i + 1}`,
-          order: i + 1,
-        },
-      });
-      moduleMap[`new-${i}`] = created.id;
-      if (m.id) moduleMap[m.id as string] = created.id;
-    }
-  }
-
-  // Sync lessons: delete progress, then old lessons, then create new
-  if (lessons) {
-    const oldLessons = await prisma.lesson.findMany({ where: { courseId: id }, select: { id: true } });
-    if (oldLessons.length > 0) {
-      await prisma.lessonProgress.deleteMany({ where: { lessonId: { in: oldLessons.map((l) => l.id) } } });
-    }
-    await prisma.lesson.deleteMany({ where: { courseId: id } });
-    await prisma.lesson.createMany({
-      data: lessons.map((l: Record<string, unknown>, i: number) => ({
-        courseId: id,
-        title: l.title as string,
-        description: (l.description as string) || null,
-        videoUrl: (l.videoUrl as string) || null,
-        imageUrl: (l.imageUrl as string) || null,
-        order: i + 1,
-        links: (l.links as string) || null,
-        homework: (l.homework as string) || null,
-        moduleId: l.moduleId ? (moduleMap[l.moduleId as string] || (l.moduleId as string)) : null,
-      })),
+  try {
+    await prisma.course.update({
+      where: { id },
+      data: courseData,
     });
-  }
 
-  return NextResponse.json({ success: true });
+    const moduleMap: Record<string, string> = {};
+    await prisma.lesson.updateMany({ where: { courseId: id }, data: { moduleId: null } });
+    await prisma.module.deleteMany({ where: { courseId: id } });
+    if (modules && modules.length > 0) {
+      for (let i = 0; i < modules.length; i++) {
+        const m = modules[i];
+        const created = await prisma.module.create({
+          data: {
+            courseId: id,
+            title: m.title || `Модуль ${i + 1}`,
+            order: i + 1,
+          },
+        });
+        moduleMap[`new-${i}`] = created.id;
+        if (m.id) moduleMap[m.id] = created.id;
+      }
+    }
+
+    if (lessons) {
+      const oldLessons = await prisma.lesson.findMany({ where: { courseId: id }, select: { id: true } });
+      if (oldLessons.length > 0) {
+        await prisma.lessonProgress.deleteMany({ where: { lessonId: { in: oldLessons.map((l) => l.id) } } });
+      }
+      await prisma.lesson.deleteMany({ where: { courseId: id } });
+      await prisma.lesson.createMany({
+        data: lessons.map((l, i) => ({
+          courseId: id,
+          title: l.title,
+          description: l.description || null,
+          videoUrl: l.videoUrl || null,
+          imageUrl: l.imageUrl || null,
+          order: i + 1,
+          links: l.links || null,
+          homework: l.homework || null,
+          moduleId: l.moduleId ? (moduleMap[l.moduleId] || l.moduleId) : null,
+        })),
+      });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("[Admin] Update course error:", error);
+    return NextResponse.json({ error: "Ошибка обновления курса" }, { status: 500 });
+  }
 }
 
 export async function DELETE(
@@ -100,19 +132,15 @@ export async function DELETE(
   const { id } = await params;
 
   try {
-    // Удаляем связанные данные (которые не имеют onDelete: Cascade)
-    // Сначала прогресс уроков (через уроки курса)
     const lessons = await prisma.lesson.findMany({ where: { courseId: id }, select: { id: true } });
     const lessonIds = lessons.map(l => l.id);
     if (lessonIds.length > 0) {
       await prisma.lessonProgress.deleteMany({ where: { lessonId: { in: lessonIds } } });
     }
 
-    // Покупки и сообщения чата
     await prisma.chatMessage.deleteMany({ where: { courseId: id } });
     await prisma.purchase.deleteMany({ where: { courseId: id } });
 
-    // Сам курс (уроки и модули удалятся каскадно)
     await prisma.course.delete({ where: { id } });
 
     return NextResponse.json({ success: true });

@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parseBody, z } from "@/lib/validation";
+
+const paymentSchema = z.object({
+  courseId: z.string().trim().min(1).max(64),
+});
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -12,7 +17,9 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const { courseId } = await req.json();
+  const parsed = await parseBody(req, paymentSchema);
+  if (!parsed.ok) return parsed.response;
+  const { courseId } = parsed.data;
 
   const course = await prisma.course.findUnique({ where: { id: courseId } });
   if (!course) {

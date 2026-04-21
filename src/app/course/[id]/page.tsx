@@ -3,11 +3,20 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Play, BookOpen, Clock, CheckCircle, Lock, ArrowLeft, ShoppingCart, Star, Award } from "lucide-react";
+import { Play, BookOpen, Clock, CheckCircle, Lock, ArrowLeft, ShoppingCart, Star, Award, FileText } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { fadeInUp, fadeInLeft, fadeInRight, staggerContainer, easing } from "@/hooks/useAnimations";
+
+function pluralizeFiles(n: number): string {
+  const mod100 = n % 100;
+  const mod10 = n % 10;
+  if (mod100 >= 11 && mod100 <= 14) return "материалов";
+  if (mod10 === 1) return "материал";
+  if (mod10 >= 2 && mod10 <= 4) return "материала";
+  return "материалов";
+}
 
 interface Course {
   id: string;
@@ -21,6 +30,7 @@ interface Course {
   lessons: { id: string; title: string; order: number; description: string | null; moduleId: string | null; type: string }[];
   recommendedCourseId: string | null;
   discountPercent: number | null;
+  filesCount?: number;
 }
 
 export default function CoursePage() {
@@ -161,6 +171,9 @@ export default function CoursePage() {
                       { icon: BookOpen, text: `${course.lessons.filter(l => l.type !== "MASTERCLASS").length} уроков` },
                       ...(course.lessons.filter(l => l.type === "MASTERCLASS").length > 0
                         ? [{ icon: Award, text: `${course.lessons.filter(l => l.type === "MASTERCLASS").length} мастер-классов` }]
+                        : []),
+                      ...((course.filesCount ?? 0) > 0
+                        ? [{ icon: FileText, text: `${course.filesCount} ${pluralizeFiles(course.filesCount!)}` }]
                         : []),
                       { icon: Clock, text: "В своём темпе" },
                       { icon: Star, text: "Доступ навсегда" },

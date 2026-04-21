@@ -62,7 +62,15 @@ export async function GET(
     });
   }
 
-  // На публичной странице курса файлы уроков не нужны — скрываем.
+  // На публичной странице курса скрываем файлы уроков (прямые id/ссылки),
+  // но отдаём общий счётчик — чтобы на лендинге показать «X материалов».
   const publicLessons = course.lessons.map(({ files: _files, ...rest }) => rest);
-  return NextResponse.json({ course: { ...course, lessons: publicLessons }, purchased });
+  const filesCount = course.lessons.reduce(
+    (acc, l) => acc + ((l.files && Array.isArray(l.files)) ? l.files.length : 0),
+    0
+  );
+  return NextResponse.json({
+    course: { ...course, lessons: publicLessons, filesCount },
+    purchased,
+  });
 }

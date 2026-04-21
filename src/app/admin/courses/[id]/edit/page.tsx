@@ -78,6 +78,9 @@ export default function EditCoursePage() {
   const [categories, setCategories] = useState<{ id: string; name: string }[]>([]);
   const [courses, setCourses] = useState<{ id: string; title: string }[]>([]);
   const [saving, setSaving] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  const draftKey = `courseDraft:${params.id}`;
 
   useEffect(() => {
     fetch("/api/admin/categories")
@@ -107,8 +110,22 @@ export default function EditCoursePage() {
             });
           }
         });
+    } else {
+      // Восстановить черновик нового курса из localStorage, если остался с прошлой попытки
+      try {
+        const raw = localStorage.getItem(draftKey);
+        if (raw) setForm(JSON.parse(raw));
+      } catch {}
     }
-  }, [params.id, isNew]);
+  }, [params.id, isNew, draftKey]);
+
+  // Автосохранение черновика — не теряем данные если сабмит упал или браузер закрылся
+  useEffect(() => {
+    if (!isNew) return;
+    try {
+      localStorage.setItem(draftKey, JSON.stringify(form));
+    } catch {}
+  }, [form, isNew, draftKey]);
 
   const addLesson = () => {
     setForm({
@@ -144,9 +161,16 @@ export default function EditCoursePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+    setSubmitError(null);
+
+    // Отфильтровываем пустые уроки (пользователь мог добавить строку и не заполнить).
+    const cleanLessons = form.lessons
+      .filter((l) => l.title.trim().length > 0)
+      .map((l, i) => ({ ...l, order: i + 1 }));
 
     const body = {
       ...form,
+      lessons: cleanLessons,
       price: parseFloat(form.price),
       discountPercent: form.discountPercent ? parseInt(form.discountPercent) : null,
       recommendedCourseId: form.recommendedCourseId || null,
@@ -157,16 +181,40 @@ export default function EditCoursePage() {
     const url = isNew ? "/api/admin/courses" : `/api/admin/courses/${params.id}`;
     const method = isNew ? "POST" : "PUT";
 
-    const res = await fetch(url, {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    try {
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
 
-    if (res.ok) {
-      router.push("/admin");
+      if (res.ok) {
+        if (isNew) {
+          try { localStorage.removeItem(draftKey); } catch {}
+        }
+        router.push("/admin");
+        return;
+      }
+
+      // Разбираем ответ сервера: Zod возвращает {error, issues[]}
+      let message = `Ошибка ${res.status}`;
+      try {
+        const data = await res.json();
+        if (data?.error) message = data.error;
+        if (Array.isArray(data?.issues) && data.issues.length > 0) {
+          message = data.issues
+            .map((i: { path?: (string | number)[]; message?: string }) =>
+              `${(i.path || []).join(".") || "поле"}: ${i.message || "ошибка"}`
+            )
+            .join("; ");
+        }
+      } catch {}
+      setSubmitError(message);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Сеть недоступна");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
   return (
@@ -588,6 +636,13 @@ export default function EditCoursePage() {
                 ))}
               </div>
             </div>
+
+            {submitError && (
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+                <strong className="block mb-1">Не удалось сохранить курс</strong>
+                <span className="break-words whitespace-pre-wrap">{submitError}</span>
+              </div>
+            )}
 
             <button
               type="submit"

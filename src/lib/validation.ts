@@ -18,20 +18,23 @@ export const passwordSchema = z
 
 export const nameSchema = z.string().trim().min(1).max(100);
 
-// Безопасный URL: только http/https, блокирует javascript:, data:, file: и т.п.
+// Безопасный URL: http(s):// или относительный путь "/...".
+// Блокирует javascript:, data:, file:, vbscript: и т.п.
 export const safeUrlSchema = z
   .string()
   .trim()
   .max(2048)
   .refine((v) => {
     if (!v) return true;
+    // Относительные пути на наш же домен — разрешены (аплоады, внутренние страницы)
+    if (v.startsWith("/") && !v.startsWith("//")) return true;
     try {
       const u = new URL(v);
       return u.protocol === "http:" || u.protocol === "https:";
     } catch {
       return false;
     }
-  }, "URL должен начинаться с http(s)://");
+  }, "URL должен быть http(s):// или начинаться с /");
 
 export const optionalSafeUrl = safeUrlSchema.optional().nullable();
 

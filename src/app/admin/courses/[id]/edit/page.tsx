@@ -3,8 +3,20 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Save, Plus, Trash2, ArrowLeft, GripVertical, Upload, Link2 } from "lucide-react";
+import { Save, Plus, Trash2, ArrowLeft, GripVertical, Upload, Link2, FileText } from "lucide-react";
 import Header from "@/components/layout/Header";
+
+interface LessonFile {
+  id: string;
+  name: string;
+  size: number;
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} Б`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} КБ`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`;
+}
 
 interface LinkItem {
   url: string;
@@ -43,6 +55,7 @@ interface Lesson {
   links: string;
   homework: string;
   moduleId: string;
+  files?: LessonFile[];
 }
 
 interface CourseForm {
@@ -155,6 +168,50 @@ export default function EditCoursePage() {
 
   const removeLesson = (idx: number) => {
     const lessons = form.lessons.filter((_, i) => i !== idx).map((l, i) => ({ ...l, order: i + 1 }));
+    setForm({ ...form, lessons });
+  };
+
+  const handleUploadLessonFile = async (idx: number, file: File) => {
+    const lesson = form.lessons[idx];
+    if (!lesson.id) {
+      setSubmitError("Сначала сохрани курс, затем добавляй файлы к урокам — нужен ID урока.");
+      return;
+    }
+    if (file.size > 30 * 1024 * 1024) {
+      setSubmitError("Файл больше 30 МБ");
+      return;
+    }
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("lessonId", lesson.id);
+    fd.append("name", file.name);
+    const res = await fetch("/api/admin/lesson-file", { method: "POST", body: fd });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setSubmitError(data.error || "Не удалось загрузить файл");
+      return;
+    }
+    const created: LessonFile = await res.json();
+    const lessons = [...form.lessons];
+    lessons[idx] = {
+      ...lesson,
+      files: [...(lesson.files || []), created],
+    };
+    setForm({ ...form, lessons });
+  };
+
+  const handleDeleteLessonFile = async (idx: number, fileId: string) => {
+    if (!confirm("Удалить файл?")) return;
+    const res = await fetch(`/api/admin/lesson-file/${fileId}`, { method: "DELETE" });
+    if (!res.ok) {
+      setSubmitError("Не удалось удалить файл");
+      return;
+    }
+    const lessons = [...form.lessons];
+    lessons[idx] = {
+      ...lessons[idx],
+      files: (lessons[idx].files || []).filter((f) => f.id !== fileId),
+    };
     setForm({ ...form, lessons });
   };
 
@@ -621,6 +678,61 @@ export default function EditCoursePage() {
                           ))}
                           {parseLinks(lesson.links).length === 0 && (
                             <p className="text-xs text-text-muted/50 text-center py-2">Нет ссылок</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Файлы-материалы к уроку */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-xs text-text-muted flex items-center gap-1.5">
+                            <FileText className="w-3 h-3" />
+                            Материалы (файлы до 30 МБ, только после покупки)
+                          </label>
+                          <label
+                            className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                              lesson.id
+                                ? "bg-accent/10 text-accent border border-accent/20 cursor-pointer hover:bg-accent/15"
+                                : "bg-bg-secondary text-text-muted/60 border border-border-default cursor-not-allowed"
+                            }`}
+                            title={lesson.id ? "" : "Сначала сохраните курс"}
+                          >
+                            <Upload className="w-3 h-3" />
+                            Добавить файл
+                            <input
+                              type="file"
+                              className="hidden"
+                              disabled={!lesson.id}
+                              onChange={async (e) => {
+                                const file = e.target.files?.[0];
+                                if (file) {
+                                  await handleUploadLessonFile(idx, file);
+                                  e.target.value = "";
+                                }
+                              }}
+                            />
+                          </label>
+                        </div>
+                        <div className="space-y-1.5">
+                          {(lesson.files || []).map((f) => (
+                            <div
+                              key={f.id}
+                              className="flex items-center gap-2 bg-bg-secondary border border-border-default rounded-lg px-3 py-2"
+                            >
+                              <FileText className="w-4 h-4 text-accent shrink-0" />
+                              <span className="text-sm text-text-primary truncate flex-1">{f.name}</span>
+                              <span className="text-xs text-text-muted shrink-0">{formatFileSize(f.size)}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteLessonFile(idx, f.id)}
+                                className="p-1 text-text-muted hover:text-red-400 transition-colors shrink-0"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                          {(!lesson.files || lesson.files.length === 0) && (
+                            <p className="text-xs text-text-muted/50 text-center py-2">Нет файлов</p>
                           )}
                         </div>
                       </div>

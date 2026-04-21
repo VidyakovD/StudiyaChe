@@ -8,15 +8,22 @@ import {
   CheckCircle,
   Lock,
   ChevronRight,
-  ExternalLink,
   BookOpen,
   ArrowLeft,
   Trophy,
+  FileText,
+  Download,
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import ProtectedVideoPlayer from "@/components/course/ProtectedVideoPlayer";
 import CourseChat from "@/components/course/CourseChat";
 import LessonCelebration from "@/components/course/LessonCelebration";
+
+interface LessonFile {
+  id: string;
+  name: string;
+  size: number;
+}
 
 interface Lesson {
   id: string;
@@ -26,11 +33,18 @@ interface Lesson {
   order: number;
   links: string | null;
   homework: string | null;
+  files: LessonFile[] | null;
 }
 
 interface LessonWithProgress extends Lesson {
   completed: boolean;
   moduleId: string | null;
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} Б`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} КБ`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} МБ`;
 }
 
 interface ModuleData {
@@ -383,6 +397,34 @@ export default function LearnPage() {
                     <p className="text-text-secondary text-sm whitespace-pre-wrap">
                       {activeLesson.homework}
                     </p>
+                  </div>
+                )}
+
+                {/* Lesson files — materials */}
+                {activeLesson.files && activeLesson.files.length > 0 && (
+                  <div className="gradient-border p-5 mb-8">
+                    <h3 className="text-text-primary font-semibold mb-3 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-accent" />
+                      Материалы
+                    </h3>
+                    <div className="space-y-2">
+                      {activeLesson.files.map((f) => (
+                        <a
+                          key={f.id}
+                          href={`/api/lesson-file/${f.id}`}
+                          className="flex items-center gap-3 bg-bg-secondary border border-border-default rounded-xl px-4 py-3 transition-colors hover:border-accent/40 hover:bg-bg-card-hover group"
+                        >
+                          <div className="w-9 h-9 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center shrink-0">
+                            <FileText className="w-4 h-4 text-accent" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm text-text-primary truncate">{f.name}</div>
+                            <div className="text-xs text-text-muted">{formatFileSize(f.size)}</div>
+                          </div>
+                          <Download className="w-4 h-4 text-text-muted group-hover:text-accent transition-colors shrink-0" />
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 )}
 

@@ -10,6 +10,7 @@ const moduleInputSchema = z.object({
 });
 
 const lessonInputSchema = z.object({
+  id: z.string().optional(),
   title: z.string().trim().min(1).max(200),
   description: z.string().trim().max(10000).nullish(),
   videoUrl: safeUrlSchema.nullish().or(z.literal("")),
@@ -46,7 +47,15 @@ export async function GET(
     where: { id },
     include: {
       modules: { orderBy: { order: "asc" } },
-      lessons: { orderBy: { order: "asc" } },
+      lessons: {
+        orderBy: { order: "asc" },
+        include: {
+          files: {
+            orderBy: { createdAt: "asc" },
+            select: { id: true, name: true, size: true, mimeType: true, createdAt: true },
+          },
+        },
+      },
       category: true,
     },
   });
@@ -93,14 +102,37 @@ export async function PUT(
     }
 
     if (lessons) {
-      const oldLessons = await prisma.lesson.findMany({ where: { courseId: id }, select: { id: true } });
-      if (oldLessons.length > 0) {
-        await prisma.lessonProgress.deleteMany({ where: { lessonId: { in: oldLessons.map((l) => l.id) } } });
+      // Сохраняем id существующих уроков: к ним привязаны файлы и прогресс.
+      // Delete-then-create сломал бы и то и другое.
+      const oldLessons = await prisma.lesson.findMany({
+        where: { courseId: id },
+        select: { id: true },
+      });
+      const oldIds = new Set(oldLessons.map((l) => l.id));
+      const keptIds = new Set(
+        lessons.map((l) => l.id).filter((x): x is string => !!x && oldIds.has(x))
+      );
+      const toDelete = oldLessons.filter((l) => !keptIds.has(l.id)).map((l) => l.id);
+
+      // Удаляем то, чего нет в новом списке. Прогресс и файлы уйдут каскадом/вручную.
+      if (toDelete.length > 0) {
+        await prisma.lessonProgress.deleteMany({ where: { lessonId: { in: toDelete } } });
+        await prisma.lesson.deleteMany({ where: { id: { in: toDelete } } });
       }
-      await prisma.lesson.deleteMany({ where: { courseId: id } });
-      await prisma.lesson.createMany({
-        data: lessons.map((l, i) => ({
-          courseId: id,
+
+      // Чтобы не упереться в @@unique([courseId, order]) при перестановке,
+      // сначала уводим оставшиеся уроки во временные отрицательные order.
+      if (keptIds.size > 0) {
+        let tmp = -1;
+        for (const lid of keptIds) {
+          await prisma.lesson.update({ where: { id: lid }, data: { order: tmp-- } });
+        }
+      }
+
+      // Теперь пишем финальные значения: update для существующих, create для новых.
+      for (let i = 0; i < lessons.length; i++) {
+        const l = lessons[i];
+        const data = {
           title: l.title,
           description: l.description || null,
           videoUrl: l.videoUrl || null,
@@ -109,8 +141,13 @@ export async function PUT(
           links: l.links || null,
           homework: l.homework || null,
           moduleId: l.moduleId ? (moduleMap[l.moduleId] || l.moduleId) : null,
-        })),
-      });
+        };
+        if (l.id && oldIds.has(l.id)) {
+          await prisma.lesson.update({ where: { id: l.id }, data });
+        } else {
+          await prisma.lesson.create({ data: { ...data, courseId: id } });
+        }
+      }
     }
 
     return NextResponse.json({ success: true });

@@ -16,7 +16,15 @@ export async function GET(
     include: {
       category: true,
       modules: { orderBy: { order: "asc" } },
-      lessons: { orderBy: { order: "asc" } },
+      lessons: {
+        orderBy: { order: "asc" },
+        include: {
+          files: {
+            orderBy: { createdAt: "asc" },
+            select: { id: true, name: true, size: true, createdAt: true },
+          },
+        },
+      },
     },
   });
 
@@ -54,5 +62,7 @@ export async function GET(
     });
   }
 
-  return NextResponse.json({ course, purchased });
+  // На публичной странице курса файлы уроков не нужны — скрываем.
+  const publicLessons = course.lessons.map(({ files: _files, ...rest }) => rest);
+  return NextResponse.json({ course: { ...course, lessons: publicLessons }, purchased });
 }

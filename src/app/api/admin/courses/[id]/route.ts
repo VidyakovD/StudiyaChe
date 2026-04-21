@@ -17,7 +17,6 @@ const lessonInputSchema = z.object({
   imageUrl: safeUrlSchema.nullish().or(z.literal("")),
   links: z.string().trim().max(10000).nullish(),
   homework: z.string().trim().max(10000).nullish(),
-  theses: z.string().trim().max(20000).nullish(),
   moduleId: z.string().nullish(),
 });
 
@@ -141,7 +140,6 @@ export async function PUT(
           order: i + 1,
           links: l.links || null,
           homework: l.homework || null,
-          theses: l.theses || null,
           moduleId: l.moduleId ? (moduleMap[l.moduleId] || l.moduleId) : null,
         };
         if (l.id && oldIds.has(l.id)) {

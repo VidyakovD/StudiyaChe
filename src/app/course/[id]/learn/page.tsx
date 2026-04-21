@@ -13,9 +13,6 @@ import {
   Trophy,
   FileText,
   Download,
-  Sparkles,
-  Lightbulb,
-  AlertCircle,
 } from "lucide-react";
 import Header from "@/components/layout/Header";
 import ProtectedVideoPlayer from "@/components/course/ProtectedVideoPlayer";
@@ -28,63 +25,6 @@ interface LessonFile {
   size: number;
 }
 
-type ThesisType = "thesis" | "theory" | "lifehack" | "important";
-
-interface ThesisItem {
-  type: ThesisType;
-  text: string;
-}
-
-function parseTheses(str: string | null): ThesisItem[] {
-  if (!str) return [];
-  try {
-    const parsed = JSON.parse(str);
-    if (Array.isArray(parsed)) {
-      return parsed
-        .filter((p) => p && typeof p === "object" && typeof p.text === "string" && p.text.trim())
-        .map((p) => ({
-          type: (["thesis", "theory", "lifehack", "important"].includes(p.type) ? p.type : "thesis") as ThesisType,
-          text: String(p.text),
-        }));
-    }
-  } catch {}
-  return [];
-}
-
-const THESIS_STYLE: Record<
-  ThesisType,
-  { label: string; Icon: typeof Sparkles; color: string; bg: string; border: string }
-> = {
-  thesis: {
-    label: "Тезис",
-    Icon: Sparkles,
-    color: "text-accent",
-    bg: "bg-accent/10",
-    border: "border-accent/25",
-  },
-  theory: {
-    label: "Теория",
-    Icon: BookOpen,
-    color: "text-neon-purple",
-    bg: "bg-neon-purple/10",
-    border: "border-neon-purple/25",
-  },
-  lifehack: {
-    label: "Лайфхак",
-    Icon: Lightbulb,
-    color: "text-yellow-300",
-    bg: "bg-yellow-500/10",
-    border: "border-yellow-500/25",
-  },
-  important: {
-    label: "Важно",
-    Icon: AlertCircle,
-    color: "text-red-300",
-    bg: "bg-red-500/10",
-    border: "border-red-500/25",
-  },
-};
-
 interface Lesson {
   id: string;
   title: string;
@@ -93,7 +33,6 @@ interface Lesson {
   order: number;
   links: string | null;
   homework: string | null;
-  theses: string | null;
   files: LessonFile[] | null;
 }
 
@@ -415,44 +354,6 @@ export default function LearnPage() {
                     })}
                   </div>
                 )}
-
-                {/* Theses — key points, theory, lifehacks */}
-                {(() => {
-                  const theses = parseTheses(activeLesson.theses);
-                  if (theses.length === 0) return null;
-                  return (
-                    <div className="gradient-border p-5 mb-6">
-                      <h3 className="text-text-primary font-semibold mb-4 flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-accent" />
-                        Для закрепления
-                      </h3>
-                      <div className="space-y-2.5">
-                        {theses.map((t, i) => {
-                          const s = THESIS_STYLE[t.type];
-                          const Icon = s.Icon;
-                          return (
-                            <div
-                              key={i}
-                              className={`flex gap-3 items-start ${s.bg} ${s.border} border rounded-xl p-3.5`}
-                            >
-                              <div className={`w-8 h-8 rounded-lg ${s.bg} ${s.border} border flex items-center justify-center shrink-0`}>
-                                <Icon className={`w-4 h-4 ${s.color}`} />
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className={`text-xs font-semibold uppercase tracking-wider mb-1 ${s.color}`}>
-                                  {s.label}
-                                </div>
-                                <p className="text-text-secondary text-sm leading-relaxed whitespace-pre-wrap">
-                                  {t.text}
-                                </p>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  );
-                })()}
 
                 {/* Links */}
                 {activeLesson.links && (() => {

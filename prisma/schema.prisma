@@ -87,7 +87,6 @@ model Lesson {
   type         LessonType @default(LESSON)
   links        String?
   homework     String?
-  theses       String?
 
   progress LessonProgress[]
   files    LessonFile[]

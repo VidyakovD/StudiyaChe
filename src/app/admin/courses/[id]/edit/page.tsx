@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Save, Plus, Trash2, ArrowLeft, GripVertical, Upload, Link2, FileText, Sparkles } from "lucide-react";
+import { Save, Plus, Trash2, ArrowLeft, GripVertical, Upload, Link2, FileText } from "lucide-react";
 import Header from "@/components/layout/Header";
 
 interface LessonFile {
@@ -38,40 +38,6 @@ function serializeLinks(links: LinkItem[]): string {
   return JSON.stringify(links);
 }
 
-type ThesisType = "thesis" | "theory" | "lifehack" | "important";
-
-interface ThesisItem {
-  type: ThesisType;
-  text: string;
-}
-
-function parseTheses(str: string | null | undefined): ThesisItem[] {
-  if (!str) return [];
-  try {
-    const parsed = JSON.parse(str);
-    if (Array.isArray(parsed)) {
-      return parsed
-        .filter((p) => p && typeof p === "object" && typeof p.text === "string")
-        .map((p) => ({
-          type: (["thesis", "theory", "lifehack", "important"].includes(p.type) ? p.type : "thesis") as ThesisType,
-          text: String(p.text),
-        }));
-    }
-  } catch {}
-  return [];
-}
-
-function serializeTheses(items: ThesisItem[]): string {
-  return JSON.stringify(items);
-}
-
-const THESIS_LABELS: Record<ThesisType, string> = {
-  thesis: "Тезис",
-  theory: "Теория",
-  lifehack: "Лайфхак",
-  important: "Важно",
-};
-
 interface ModuleItem {
   id?: string;
   title: string;
@@ -88,7 +54,6 @@ interface Lesson {
   type: string;
   links: string;
   homework: string;
-  theses: string;
   moduleId: string;
   files?: LessonFile[];
 }
@@ -189,7 +154,6 @@ export default function EditCoursePage() {
           type: "LESSON",
           links: "",
           homework: "",
-          theses: "",
           moduleId: "",
         },
       ],
@@ -714,74 +678,6 @@ export default function EditCoursePage() {
                           ))}
                           {parseLinks(lesson.links).length === 0 && (
                             <p className="text-xs text-text-muted/50 text-center py-2">Нет ссылок</p>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Тезисы, теории и лайфхаки */}
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <label className="text-xs text-text-muted flex items-center gap-1.5">
-                            <Sparkles className="w-3 h-3" />
-                            Тезисы / теории / лайфхаки (для закрепления)
-                          </label>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const t = parseTheses(lesson.theses);
-                              t.push({ type: "thesis", text: "" });
-                              updateLesson(idx, "theses", serializeTheses(t));
-                            }}
-                            className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-accent/10 text-accent border border-accent/20 text-xs font-medium hover:bg-accent/15 transition-colors"
-                          >
-                            <Plus className="w-3 h-3" />
-                            Добавить пункт
-                          </button>
-                        </div>
-                        <div className="space-y-2">
-                          {parseTheses(lesson.theses).map((item, ti) => (
-                            <div
-                              key={ti}
-                              className="flex gap-2 bg-bg-secondary rounded-xl p-3 border border-border-default items-start"
-                            >
-                              <select
-                                value={item.type}
-                                onChange={(e) => {
-                                  const t = parseTheses(lesson.theses);
-                                  t[ti] = { ...t[ti], type: e.target.value as ThesisType };
-                                  updateLesson(idx, "theses", serializeTheses(t));
-                                }}
-                                className="bg-bg-primary border border-border-default rounded-lg px-2 py-1.5 text-xs text-text-secondary shrink-0"
-                              >
-                                <option value="thesis">Тезис</option>
-                                <option value="theory">Теория</option>
-                                <option value="lifehack">Лайфхак</option>
-                                <option value="important">Важно</option>
-                              </select>
-                              <textarea
-                                value={item.text}
-                                onChange={(e) => {
-                                  const t = parseTheses(lesson.theses);
-                                  t[ti] = { ...t[ti], text: e.target.value };
-                                  updateLesson(idx, "theses", serializeTheses(t));
-                                }}
-                                placeholder="Короткий тезис или лайфхак для студента"
-                                className="input-dark flex-1 !py-1.5 text-xs min-h-[40px] resize-y"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  const t = parseTheses(lesson.theses).filter((_, i) => i !== ti);
-                                  updateLesson(idx, "theses", serializeTheses(t));
-                                }}
-                                className="p-1.5 text-text-muted hover:text-red-400 transition-colors shrink-0"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          ))}
-                          {parseTheses(lesson.theses).length === 0 && (
-                            <p className="text-xs text-text-muted/50 text-center py-2">Нет пунктов</p>
                           )}
                         </div>
                       </div>

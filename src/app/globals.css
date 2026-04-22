@@ -463,6 +463,43 @@ p {
   color: rgba(106, 106, 122, 0.5);
 }
 
+/* ===== WYSIWYG EDITOR ===== */
+.wysiwyg-editor {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-y: auto;
+  line-height: 1.5;
+}
+
+.wysiwyg-editor:empty::before {
+  content: attr(data-placeholder);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.wysiwyg-editor pre[data-copy] {
+  display: block;
+  margin: 10px 0;
+  padding: 10px 14px;
+  background: rgba(17, 17, 24, 0.85);
+  border: 1px solid rgba(255, 107, 43, 0.3);
+  border-radius: 10px;
+  font-family: ui-monospace, "Menlo", "Consolas", monospace;
+  font-size: 13px;
+  white-space: pre-wrap;
+  color: var(--text-primary);
+}
+
+.wysiwyg-editor pre[data-copy]::before {
+  content: "📋 блок копирования";
+  display: block;
+  font-family: inherit;
+  font-size: 11px;
+  color: rgba(255, 107, 43, 0.7);
+  margin-bottom: 6px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
 /* ===== SELECT STYLES ===== */
 select.bg-bg-card {
   transition:

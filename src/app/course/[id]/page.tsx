@@ -380,7 +380,14 @@ export default function CoursePage() {
                           )}
                         </div>
                         {lesson.description && (
-                          <p className="text-sm text-text-muted truncate">{lesson.description}</p>
+                          <p className="text-sm text-text-muted truncate">
+                            {lesson.description
+                              .replace(/```[\s\S]*?```/g, "")
+                              .replace(/\*\*(.+?)\*\*/g, "$1")
+                              .replace(/__(.+?)__/g, "$1")
+                              .replace(/\*(.+?)\*/g, "$1")
+                              .trim()}
+                          </p>
                         )}
                       </div>
                       {!purchased && (

@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Save, Plus, Trash2, ArrowLeft, GripVertical, Upload, Link2, FileText } from "lucide-react";
 import Header from "@/components/layout/Header";
+import LessonDescriptionEditor from "@/components/admin/LessonDescriptionEditor";
 
 interface LessonFile {
   id: string;
@@ -556,11 +557,10 @@ export default function EditCoursePage() {
                         required
                       />
 
-                      <textarea
+                      <LessonDescriptionEditor
                         value={lesson.description}
-                        onChange={(e) => updateLesson(idx, "description", e.target.value)}
+                        onChange={(v) => updateLesson(idx, "description", v)}
                         placeholder="Описание"
-                        className="input-dark min-h-[80px] resize-y"
                       />
 
                       {/* Обложка урока */}

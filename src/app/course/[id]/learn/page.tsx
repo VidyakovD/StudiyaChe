@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Play,
   CheckCircle,
   Lock,
   ChevronRight,
@@ -18,6 +17,7 @@ import Header from "@/components/layout/Header";
 import ProtectedVideoPlayer from "@/components/course/ProtectedVideoPlayer";
 import CourseChat from "@/components/course/CourseChat";
 import LessonCelebration from "@/components/course/LessonCelebration";
+import LessonDescription from "@/components/course/LessonDescription";
 
 interface LessonFile {
   id: string;
@@ -327,32 +327,7 @@ export default function LearnPage() {
                 </h1>
 
                 {activeLesson.description && (
-                  <div className="text-text-secondary text-lg leading-relaxed mb-8 whitespace-pre-wrap">
-                    {activeLesson.description.split(/(\d{1,2}:\d{2}(?::\d{2})?)/).map((part, i) => {
-                      const timeMatch = part.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
-                      if (timeMatch) {
-                        const h = timeMatch[3] ? parseInt(timeMatch[1]) : 0;
-                        const m = timeMatch[3] ? parseInt(timeMatch[2]) : parseInt(timeMatch[1]);
-                        const s = timeMatch[3] ? parseInt(timeMatch[3]) : parseInt(timeMatch[2]);
-                        const totalSeconds = h * 3600 + m * 60 + s;
-                        return (
-                          <button
-                            key={i}
-                            onClick={() => {
-                              const seekFn = (window as unknown as Record<string, unknown>).__videoSeekTo as ((s: number) => void) | undefined;
-                              if (seekFn) seekFn(totalSeconds);
-                              window.scrollTo({ top: 0, behavior: "smooth" });
-                            }}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-accent/10 text-accent hover:bg-accent/20 transition-colors text-sm font-mono cursor-pointer border border-accent/20 mx-1"
-                          >
-                            <Play className="w-3 h-3" fill="currentColor" />
-                            {part}
-                          </button>
-                        );
-                      }
-                      return <span key={i}>{part}</span>;
-                    })}
-                  </div>
+                  <LessonDescription text={activeLesson.description} />
                 )}
 
                 {/* Links */}

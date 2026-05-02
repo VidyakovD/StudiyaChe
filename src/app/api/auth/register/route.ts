@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { hash } from "bcryptjs";
-import { randomUUID } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { sendVerificationEmail } from "@/lib/email";
 import {
@@ -9,8 +8,8 @@ import {
   emailSchema,
   passwordSchema,
   nameSchema,
-  hashToken,
 } from "@/lib/validation";
+import { signRegistrationToken } from "@/lib/registration-token";
 
 const registerSchema = z.object({
   name: nameSchema,
@@ -25,58 +24,51 @@ const registerSchema = z.object({
   agreeNewsletter: z.boolean().optional().default(false),
 });
 
+// POST /api/auth/register — НЕ создаёт User в БД.
+// Подписанный токен с email/именем/bcrypt-hash пароля кладётся в URL письма.
+// User создаётся ТОЛЬКО при verify (после клика в письме).
+// Так незаконченные регистрации не оседают в БД и нет email-enumeration.
 export async function POST(req: NextRequest) {
   const parsed = await parseBody(req, registerSchema);
   if (!parsed.ok) return parsed.response;
 
   const { name, email, password, agreeNewsletter } = parsed.data;
 
-  // Generic-ответ — один и тот же при успехе и при занятом email.
-  // Иначе можно перебирать зарегистрированные адреса по разнице 200/409.
+  // Generic-ответ — один и тот же при успехе, при занятом email и при ошибке
+  // отправки письма. Так невозможно перебрать существующие email-ы.
   const genericSuccess = NextResponse.json({
     success: true,
     message:
-      "Регистрация принята. Если этот email ещё не зарегистрирован, мы отправили письмо для подтверждения.",
+      "Регистрация принята. Если этот email ещё не зарегистрирован, мы отправили письмо для подтверждения. Ссылка действительна 24 часа.",
   });
 
   try {
-    const hashedPassword = await hash(password, 12);
-    const verifyToken = randomUUID();
-    const now = new Date();
-    // Срок жизни verify-токена: 24 часа. После — нужен ресенд.
-    const verifyTokenExp = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-
-    try {
-      await prisma.user.create({
-        data: {
-          name,
-          email,
-          password: hashedPassword,
-          verifyToken: hashToken(verifyToken),
-          verifyTokenExp,
-          // Фиксируем момент явного согласия — для аудита 152-ФЗ.
-          consentToProcessingAt: now,
-          subscribedToNewsletter: agreeNewsletter,
-        },
-      });
-    } catch (e: unknown) {
-      // P2002 = unique violation (email уже существует или гонка двух запросов).
-      // Не раскрываем факт существования — возвращаем тот же generic-ответ.
-      if ((e as { code?: string })?.code === "P2002") {
-        return genericSuccess;
-      }
-      throw e;
+    // Проверка существования НЕ блокирует ответ (генерик), но письмо тогда
+    // не шлём — иначе можно было бы DOS-ить чужой инбокс.
+    const existing = await prisma.user.findUnique({
+      where: { email },
+      select: { id: true, emailVerified: true },
+    });
+    if (existing) {
+      // Эта ветка не отдаёт сигнал клиенту — просто молчаливо не шлём письмо.
+      // Юзер с уже существующим email видит то же сообщение, что и новый.
+      return genericSuccess;
     }
 
-    // Отправляем письмо верификации (fire-and-forget — не блокирует ответ)
-    sendVerificationEmail(email, verifyToken);
+    const passwordHash = await hash(password, 12);
+    const token = signRegistrationToken({
+      email,
+      passwordHash,
+      name,
+      agreeNewsletter,
+      consentAt: Date.now(),
+    });
 
+    sendVerificationEmail(email, token);
     return genericSuccess;
   } catch (error) {
-    console.error("[Register] error:", error);
-    return NextResponse.json(
-      { error: "Ошибка сервера" },
-      { status: 500 }
-    );
+    console.error("[Register] error:", (error as { code?: string })?.code || "unknown");
+    // Тоже generic — не палим, был сбой или нет.
+    return genericSuccess;
   }
 }

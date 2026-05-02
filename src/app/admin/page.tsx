@@ -45,6 +45,8 @@ interface UserItem {
   email: string;
   role: string;
   createdAt: string;
+  emailVerified: boolean;
+  subscribedToNewsletter: boolean;
   _count: { purchases: number };
 }
 
@@ -260,7 +262,34 @@ export default function AdminPage() {
                   {users.map((user) => (
                     <tr key={user.id} className="border-b border-border-default/50 hover:bg-bg-card/50 transition-colors">
                       <td className="py-3 px-4 text-text-primary">{user.name}</td>
-                      <td className="py-3 px-4 text-text-secondary">{user.email}</td>
+                      <td className="py-3 px-4 text-text-secondary">
+                        <div className="flex items-center gap-2">
+                          <span>{user.email}</span>
+                          {user.emailVerified ? (
+                            <span
+                              title="Email подтверждён"
+                              className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-green-500/15 text-green-400 text-[10px]"
+                            >
+                              ✓
+                            </span>
+                          ) : (
+                            <span
+                              title="Email не подтверждён"
+                              className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-yellow-500/15 text-yellow-400 text-[10px]"
+                            >
+                              !
+                            </span>
+                          )}
+                          {user.subscribedToNewsletter && (
+                            <span
+                              title="Подписан на рассылку"
+                              className="inline-flex items-center justify-center w-5 h-5 rounded-full bg-accent/15 text-accent text-[10px]"
+                            >
+                              ✉
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="py-3 px-4">
                         <span className={`px-2 py-1 rounded-full text-xs ${
                           user.role === "ADMIN" ? "bg-neon-purple/15 text-neon-purple" : "bg-bg-card text-text-muted"

@@ -16,6 +16,8 @@ export async function GET() {
       email: true,
       role: true,
       createdAt: true,
+      emailVerified: true,
+      subscribedToNewsletter: true,
       _count: { select: { purchases: true } },
     },
     orderBy: { createdAt: "desc" },

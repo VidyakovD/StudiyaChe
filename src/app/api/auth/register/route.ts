@@ -16,13 +16,20 @@ const registerSchema = z.object({
   name: nameSchema,
   email: emailSchema,
   password: passwordSchema,
+  // Оба согласия обязательны для регистрации (152-ФЗ + наша оферта).
+  agreeOffer: z.literal(true, { message: "Необходимо принять условия оферты" }),
+  agreePrivacy: z.literal(true, {
+    message: "Необходимо согласие на обработку персональных данных",
+  }),
+  // Маркетинговое — опциональное (38-ФЗ требует явного согласия, default false).
+  agreeNewsletter: z.boolean().optional().default(false),
 });
 
 export async function POST(req: NextRequest) {
   const parsed = await parseBody(req, registerSchema);
   if (!parsed.ok) return parsed.response;
 
-  const { name, email, password } = parsed.data;
+  const { name, email, password, agreeNewsletter } = parsed.data;
 
   // Generic-ответ — один и тот же при успехе и при занятом email.
   // Иначе можно перебирать зарегистрированные адреса по разнице 200/409.
@@ -35,6 +42,7 @@ export async function POST(req: NextRequest) {
   try {
     const hashedPassword = await hash(password, 12);
     const verifyToken = randomUUID();
+    const now = new Date();
 
     try {
       await prisma.user.create({
@@ -43,6 +51,9 @@ export async function POST(req: NextRequest) {
           email,
           password: hashedPassword,
           verifyToken: hashToken(verifyToken),
+          // Фиксируем момент явного согласия — для аудита 152-ФЗ.
+          consentToProcessingAt: now,
+          subscribedToNewsletter: agreeNewsletter,
         },
       });
     } catch (e: unknown) {

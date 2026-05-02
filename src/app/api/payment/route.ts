@@ -99,20 +99,27 @@ export async function POST(req: NextRequest) {
     const ykData = await ykResponse.json();
 
     if (!ykResponse.ok) {
-      console.error("YuKassa error:", ykData);
+      // 54-ФЗ / privacy: НЕ логируем payload — там состав чека, email и сумма.
+      // Достаточно статуса и кода ошибки от ЮKassa.
+      console.error(
+        "[Payment] YuKassa error:",
+        ykResponse.status,
+        ykData?.code || ykData?.type || "unknown"
+      );
       return NextResponse.json({ error: "Ошибка платёжной системы" }, { status: 502 });
     }
 
     // Вернуть URL для перенаправления на оплату
     const confirmationUrl = ykData.confirmation?.confirmation_url;
     if (!confirmationUrl) {
-      console.error("No confirmation URL:", ykData);
+      console.error("[Payment] No confirmation URL for paymentId:", ykData?.id || "<unknown>");
       return NextResponse.json({ error: "Ошибка создания платежа" }, { status: 500 });
     }
 
     return NextResponse.json({ redirect: confirmationUrl, paymentId: ykData.id });
   } catch (e) {
-    console.error("Payment error:", e);
+    const errType = (e as { name?: string })?.name || "unknown";
+    console.error("[Payment] error:", errType);
     return NextResponse.json({ error: "Ошибка сервера" }, { status: 500 });
   }
 }

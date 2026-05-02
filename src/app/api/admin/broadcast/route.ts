@@ -25,13 +25,19 @@ export async function POST(req: NextRequest) {
   const { subject, message } = parsed.data;
 
   try {
+    // 38-ФЗ "О рекламе": маркетинговую рассылку шлём только тем, кто явно
+    // согласился (отдельный чекбокс при регистрации). Без подписки — даже
+    // подтверждённый аккаунт в рассылку не попадает.
     const users = await prisma.user.findMany({
-      where: { emailVerified: true },
+      where: { emailVerified: true, subscribedToNewsletter: true },
       select: { email: true, name: true },
     });
 
     if (users.length === 0) {
-      return NextResponse.json({ error: "Нет подтверждённых пользователей для рассылки" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Нет пользователей, подписанных на рассылку" },
+        { status: 400 }
+      );
     }
 
     let sent = 0;

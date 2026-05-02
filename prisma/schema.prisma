@@ -29,6 +29,13 @@ model User {
   verifyToken    String?
   resetToken     String?
   resetTokenExp  DateTime?
+  // Согласие на обработку ПДн — для аудита 152-ФЗ. Заполняется при регистрации,
+  // если юзер отметил соответствующий чекбокс. Для существующих пользователей
+  // остаётся null до явного подтверждения.
+  consentToProcessingAt   DateTime?
+  // Маркетинговое согласие 38-ФЗ — отдельный чекбокс на регистрации.
+  // По умолчанию false: рассылка только тем, кто явно подписался.
+  subscribedToNewsletter  Boolean   @default(false)
   createdAt      DateTime  @default(now())
 
   purchases      Purchase[]

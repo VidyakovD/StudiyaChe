@@ -11,7 +11,10 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  // Согласия — НИКОГДА не предзаполнены, требуются явные клики.
   const [agreeOffer, setAgreeOffer] = useState(false);
+  const [agreePrivacy, setAgreePrivacy] = useState(false);
+  const [agreeNewsletter, setAgreeNewsletter] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -25,7 +28,14 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          agreeOffer,
+          agreePrivacy,
+          agreeNewsletter,
+        }),
       });
 
       const data = await res.json();
@@ -196,21 +206,43 @@ export default function RegisterPage() {
                   required
                 />
                 <span className="text-sm text-text-muted leading-relaxed">
-                  Я ознакомился с{" "}
+                  Принимаю условия{" "}
                   <a href="/offer" target="_blank" className="text-accent hover:text-accent-light underline transition-colors">
-                    договором оферты
-                  </a>{" "}
-                  и{" "}
+                    договора-оферты
+                  </a>
+                </span>
+              </label>
+
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={agreePrivacy}
+                  onChange={(e) => setAgreePrivacy(e.target.checked)}
+                  required
+                />
+                <span className="text-sm text-text-muted leading-relaxed">
+                  Согласен на обработку персональных данных в соответствии с{" "}
                   <a href="/privacy" target="_blank" className="text-accent hover:text-accent-light underline transition-colors">
                     политикой конфиденциальности
-                  </a>
-                  , даю согласие на обработку персональных данных и получение чеков на указанный email
+                  </a>{" "}
+                  и получение фискальных чеков на указанный email
+                </span>
+              </label>
+
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={agreeNewsletter}
+                  onChange={(e) => setAgreeNewsletter(e.target.checked)}
+                />
+                <span className="text-sm text-text-muted leading-relaxed">
+                  Хочу получать письма о новых курсах и анонсах (не обязательно)
                 </span>
               </label>
 
               <motion.button
                 type="submit"
-                disabled={loading || !agreeOffer}
+                disabled={loading || !agreeOffer || !agreePrivacy}
                 className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 whileTap={{ scale: 0.97 }}
               >

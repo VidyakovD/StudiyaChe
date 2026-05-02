@@ -4,6 +4,7 @@
    SMTP порты закрыты на сервере — используем HTTP API
    ================================================================ */
 import { escapeHtml } from "./validation";
+import { signUnsubscribeToken } from "./unsubscribe-token";
 
 const BASE_URL = process.env.NEXTAUTH_URL || "https://studiache.ru";
 const SMTP_USER = process.env.SMTP_USER || "";
@@ -92,7 +93,18 @@ function getTransporter(): Promise<Transporter | null> {
   return transporterPromise;
 }
 
-async function sendEmailDirect(to: string, subject: string, html: string): Promise<boolean> {
+type SendOptions = {
+  // Заголовки List-Unsubscribe / List-Unsubscribe-Post (RFC 2369 / 8058) —
+  // нужны почтовикам (Gmail, Yandex, Mail.ru) для кнопки "Отписаться" в UI.
+  unsubscribeUrl?: string;
+};
+
+async function sendEmailDirect(
+  to: string,
+  subject: string,
+  html: string,
+  opts?: SendOptions
+): Promise<boolean> {
   const transporter = await getTransporter();
   if (!transporter) {
     console.warn("[Email] SMTP не настроен, письмо не отправлено:", { to, subject });
@@ -100,18 +112,46 @@ async function sendEmailDirect(to: string, subject: string, html: string): Promi
   }
 
   try {
-    await transporter.sendMail({
+    type SendInput = {
+      from: string;
+      to: string;
+      subject: string;
+      html: string;
+      headers?: Record<string, string>;
+    };
+    const message: SendInput = {
       from: `${FROM_NAME} <${FROM_EMAIL}>`,
       to,
       subject,
       html: emailLayout(html),
-    });
+    };
+    if (opts?.unsubscribeUrl) {
+      message.headers = {
+        "List-Unsubscribe": `<${opts.unsubscribeUrl}>`,
+        "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+      };
+    }
+    await (transporter as Transporter & { sendMail: (m: SendInput) => Promise<unknown> }).sendMail(message);
     console.log(`[Email] Отправлено: ${subject} → ${to}`);
     return true;
   } catch (error) {
     console.error("[Email] Ошибка отправки:", error);
     return false;
   }
+}
+
+/* ================================================================
+   Футер маркетингового письма с одно-кликовой отпиской (38-ФЗ).
+   Без него любая рассылка — это нарушение 38-ФЗ ст. 18.
+   ================================================================ */
+function marketingFooter(toEmail: string): string {
+  const url = `${BASE_URL}/api/auth/unsubscribe?token=${encodeURIComponent(signUnsubscribeToken(toEmail))}`;
+  return `
+    <p style="color:#6a6a7a; font-size:12px; line-height:1.5; margin:24px 0 0; text-align:center;">
+      Это маркетинговое письмо. Вы получили его, потому что подписались на рассылку при регистрации.<br>
+      <a href="${url}" style="color:#6a6a7a; text-decoration:underline;">Отписаться от рассылки</a>
+    </p>
+  `;
 }
 
 /* ================================================================
@@ -126,6 +166,7 @@ export function sendBroadcastEmailAsync(
 ): Promise<boolean> {
   const htmlMessage = escapeHtml(message).replace(/\n/g, "<br>");
   const safeName = escapeHtml(userName);
+  const unsubscribeUrl = `${BASE_URL}/api/auth/unsubscribe?token=${encodeURIComponent(signUnsubscribeToken(to))}`;
 
   return sendEmailDirect(to, subject, `
     <p style="color:#a0a0b0; font-size:15px; margin:0 0 20px;">
@@ -143,7 +184,8 @@ export function sendBroadcastEmailAsync(
         </td>
       </tr>
     </table>
-  `);
+    ${marketingFooter(to)}
+  `, { unsubscribeUrl });
 }
 
 /* ================================================================

@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, BookOpen, Play, Settings, LogOut, Save, CheckCircle } from "lucide-react";
+import { User, BookOpen, Play, Settings, LogOut, Save, CheckCircle, Trash2, AlertTriangle } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { formatPrice } from "@/lib/utils";
 import Header from "@/components/layout/Header";
@@ -96,8 +96,14 @@ export default function CabinetPage() {
   const [newPassword, setNewPassword] = useState("");
   const [nickname, setNickname] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [subscribedToNewsletter, setSubscribedToNewsletter] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  // Удаление аккаунта (152-ФЗ ст. 14, ст. 21).
+  const [showDelete, setShowDelete] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
 
   useEffect(() => {
     if (status === "unauthenticated") {
@@ -106,16 +112,25 @@ export default function CabinetPage() {
   }, [status, router]);
 
   useEffect(() => {
-    if (session?.user) {
+    if (session?.user?.id) {
       setName(session.user.name || "");
       setNickname((session.user as { nickname?: string }).nickname || "");
       setAvatarUrl((session.user as { avatarUrl?: string }).avatarUrl || "");
+      // Подписка на рассылку — отдельным запросом, в session её нет.
+      fetch("/api/cabinet/profile")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data?.subscribedToNewsletter !== undefined) {
+            setSubscribedToNewsletter(!!data.subscribedToNewsletter);
+          }
+        })
+        .catch(() => {});
       fetch("/api/cabinet/courses")
         .then((r) => r.json())
         .then((data) => setCourses(data.courses || []))
         .catch(() => {});
     }
-  }, [session]);
+  }, [session?.user?.id, session?.user?.name, session]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,7 +139,14 @@ export default function CabinetPage() {
       await fetch("/api/cabinet/profile", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, nickname: nickname || undefined, avatarUrl: avatarUrl || undefined, password: newPassword || undefined, currentPassword: currentPassword || undefined }),
+        body: JSON.stringify({
+          name,
+          nickname: nickname || undefined,
+          avatarUrl: avatarUrl || undefined,
+          password: newPassword || undefined,
+          currentPassword: currentPassword || undefined,
+          subscribedToNewsletter,
+        }),
       });
       setSaved(true);
       setNewPassword("");
@@ -134,6 +156,33 @@ export default function CabinetPage() {
       // ignore
     }
     setSaving(false);
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteError("");
+    if (!deletePassword) {
+      setDeleteError("Введите текущий пароль для подтверждения");
+      return;
+    }
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/cabinet/profile", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: deletePassword }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setDeleteError(data.error || "Не удалось удалить аккаунт");
+        setDeleting(false);
+        return;
+      }
+      // Аккаунт удалён — выходим и редиректим на главную.
+      await signOut({ callbackUrl: "/" });
+    } catch {
+      setDeleteError("Ошибка сервера");
+      setDeleting(false);
+    }
   };
 
   if (status === "loading") {
@@ -385,6 +434,25 @@ export default function CabinetPage() {
                     />
                   </div>
 
+                  <div className="pt-2 border-t border-border-default">
+                    <label className="flex items-start gap-3 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={subscribedToNewsletter}
+                        onChange={(e) => setSubscribedToNewsletter(e.target.checked)}
+                        className="mt-1"
+                      />
+                      <div>
+                        <div className="text-sm text-text-secondary">
+                          Получать письма о новых курсах и анонсах
+                        </div>
+                        <div className="text-xs text-text-muted mt-1">
+                          Сервисные уведомления (оплата, чеки, восстановление пароля) приходят независимо от этой настройки.
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+
                   <motion.button
                     type="submit"
                     disabled={saving}
@@ -431,6 +499,72 @@ export default function CabinetPage() {
                     </span>
                   </motion.button>
                 </form>
+
+                {/* Опасная зона: удаление аккаунта (152-ФЗ ст. 14) */}
+                <div className="relative z-10 mt-10 pt-6 border-t border-red-500/20">
+                  <h3 className="text-sm font-semibold text-red-400 flex items-center gap-2 mb-2">
+                    <AlertTriangle className="w-4 h-4" />
+                    Удаление аккаунта
+                  </h3>
+                  <p className="text-xs text-text-muted mb-4 leading-relaxed">
+                    Вы вправе в любой момент потребовать удаления своих персональных данных.
+                    После удаления вы потеряете доступ к приобретённым курсам и истории чатов.
+                    Действие необратимо.
+                  </p>
+                  {!showDelete ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowDelete(true);
+                        setDeleteError("");
+                        setDeletePassword("");
+                      }}
+                      className="text-xs px-3 py-2 rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors flex items-center gap-2"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Удалить мой аккаунт
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <input
+                        type="password"
+                        value={deletePassword}
+                        onChange={(e) => setDeletePassword(e.target.value)}
+                        placeholder="Подтвердите паролем"
+                        className="input-dark text-sm"
+                      />
+                      {deleteError && (
+                        <p className="text-xs text-red-400">{deleteError}</p>
+                      )}
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={handleDeleteAccount}
+                          disabled={deleting}
+                          className="text-xs px-3 py-2 rounded-lg bg-red-500/15 border border-red-500/40 text-red-300 hover:bg-red-500/25 transition-colors disabled:opacity-50 flex items-center gap-2"
+                        >
+                          {deleting ? (
+                            <div className="w-3.5 h-3.5 border-2 border-red-300/30 border-t-red-300 rounded-full animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                          Подтвердить удаление
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowDelete(false);
+                            setDeletePassword("");
+                            setDeleteError("");
+                          }}
+                          className="text-xs px-3 py-2 rounded-lg border border-border-default text-text-muted hover:text-text-secondary transition-colors"
+                        >
+                          Отменить
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

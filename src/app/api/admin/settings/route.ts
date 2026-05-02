@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { parseBody, z } from "@/lib/validation";
+
+const settingsUpdateSchema = z.object({
+  key: z.string().trim().min(1).max(64),
+  value: z.string().max(10000),
+});
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -24,11 +30,9 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const { key, value } = await req.json();
-
-  if (!key || typeof value !== "string") {
-    return NextResponse.json({ error: "key и value обязательны" }, { status: 400 });
-  }
+  const parsed = await parseBody(req, settingsUpdateSchema);
+  if (!parsed.ok) return parsed.response;
+  const { key, value } = parsed.data;
 
   await prisma.siteSettings.upsert({
     where: { key },

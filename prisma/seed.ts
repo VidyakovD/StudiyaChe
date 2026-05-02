@@ -6,15 +6,21 @@ const prisma = new PrismaClient();
 async function main() {
   console.log("Seeding database...");
 
-  // Admin account
-  const adminPassword = await hash("28371988", 12);
+  const adminEmail = process.env.ADMIN_EMAIL || "vidyakov@studiache.ru";
+  const adminInitialPassword = process.env.ADMIN_INITIAL_PASSWORD;
+  if (!adminInitialPassword) {
+    throw new Error(
+      "ADMIN_INITIAL_PASSWORD не задан. Установите переменную в .env (это пароль для первого создания админа; существующий аккаунт не перезаписывается)."
+    );
+  }
+  const adminPassword = await hash(adminInitialPassword, 12);
   const admin = await prisma.user.upsert({
-    where: { email: "vidyakov@studiache.ru" },
-    update: {},
+    where: { email: adminEmail },
+    update: {}, // существующий админ не перезаписывается
     create: {
       name: "Vidyakov",
       nickname: "Vidyakov",
-      email: "vidyakov@studiache.ru",
+      email: adminEmail,
       password: adminPassword,
       role: "ADMIN",
       emailVerified: true,

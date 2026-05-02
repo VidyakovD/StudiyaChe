@@ -62,9 +62,18 @@ export async function GET(
     });
   }
 
-  // На публичной странице курса скрываем файлы уроков (прямые id/ссылки),
-  // но отдаём общий счётчик — чтобы на лендинге показать «X материалов».
-  const publicLessons = course.lessons.map(({ files: _files, ...rest }) => rest);
+  // Не купившим отдаём только превью-поля уроков. videoUrl, homework, links и files —
+  // платный контент, его нельзя слать на клиент по публичному GET.
+  const publicLessons = course.lessons.map((l) => ({
+    id: l.id,
+    courseId: l.courseId,
+    moduleId: l.moduleId,
+    title: l.title,
+    description: l.description,
+    imageUrl: l.imageUrl,
+    order: l.order,
+    type: l.type,
+  }));
   const filesCount = course.lessons.reduce(
     (acc, l) => acc + ((l.files && Array.isArray(l.files)) ? l.files.length : 0),
     0

@@ -57,45 +57,93 @@ function emailLayout(content: string): string {
 }
 
 /* ================================================================
-   Базовая отправка через nodemailer с таймаутом
-   Не блокирует основной процесс — fire and forget
+   Singleton transporter — одно SMTP-подключение на процесс с пулом.
+   Раньше каждый sendEmailDirect создавал новый транспорт → 1000 коннектов
+   на массовой рассылке и бан от Yandex.
    ================================================================ */
+type Transporter = {
+  sendMail: (opts: { from: string; to: string; subject: string; html: string }) => Promise<unknown>;
+};
+
+let transporterPromise: Promise<Transporter | null> | null = null;
+
+function getTransporter(): Promise<Transporter | null> {
+  if (transporterPromise) return transporterPromise;
+  transporterPromise = (async () => {
+    if (!SMTP_USER || !SMTP_PASS) return null;
+    const nodemailer = await import("nodemailer");
+    return nodemailer.default.createTransport({
+      host: process.env.SMTP_HOST || "smtp.yandex.ru",
+      port: parseInt(process.env.SMTP_PORT || "465"),
+      secure: parseInt(process.env.SMTP_PORT || "465") === 465,
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
+      pool: true,
+      maxConnections: 5,
+      maxMessages: 100,
+      connectionTimeout: 10000,
+      socketTimeout: 10000,
+      greetingTimeout: 10000,
+    }) as Transporter;
+  })().catch((err) => {
+    console.error("[Email] Не удалось создать transporter:", err);
+    transporterPromise = null;
+    return null;
+  });
+  return transporterPromise;
+}
+
 async function sendEmailDirect(to: string, subject: string, html: string): Promise<boolean> {
-  if (!SMTP_USER || !SMTP_PASS) {
+  const transporter = await getTransporter();
+  if (!transporter) {
     console.warn("[Email] SMTP не настроен, письмо не отправлено:", { to, subject });
     return false;
   }
 
   try {
-    // Динамический импорт nodemailer чтобы не блокировать если модуль сломан
-    const nodemailer = await import("nodemailer");
-
-    const transporter = nodemailer.default.createTransport({
-      host: process.env.SMTP_HOST || "smtp.yandex.ru",
-      port: parseInt(process.env.SMTP_PORT || "465"),
-      secure: parseInt(process.env.SMTP_PORT || "465") === 465,
-      auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
-      },
-      connectionTimeout: 10000, // 10 сек на подключение
-      socketTimeout: 10000,     // 10 сек на сокет
-      greetingTimeout: 10000,   // 10 сек на приветствие
-    });
-
     await transporter.sendMail({
       from: `${FROM_NAME} <${FROM_EMAIL}>`,
       to,
       subject,
       html: emailLayout(html),
     });
-
     console.log(`[Email] Отправлено: ${subject} → ${to}`);
     return true;
   } catch (error) {
     console.error("[Email] Ошибка отправки:", error);
     return false;
   }
+}
+
+/* ================================================================
+   Awaitable вариант рассылки — возвращает true/false для
+   корректного подсчёта sent/failed в /api/admin/broadcast.
+   ================================================================ */
+export function sendBroadcastEmailAsync(
+  to: string,
+  userName: string,
+  subject: string,
+  message: string
+): Promise<boolean> {
+  const htmlMessage = escapeHtml(message).replace(/\n/g, "<br>");
+  const safeName = escapeHtml(userName);
+
+  return sendEmailDirect(to, subject, `
+    <p style="color:#a0a0b0; font-size:15px; margin:0 0 20px;">
+      Привет${safeName ? `, ${safeName}` : ""}!
+    </p>
+    <div style="color:#f0f0f5; font-size:16px; line-height:1.7; margin:0 0 24px;">
+      ${htmlMessage}
+    </div>
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="center" style="padding:8px 0 16px;">
+          <a href="${BASE_URL}" style="display:inline-block; background:linear-gradient(135deg, #ff6b2b, #ff8c42); color:#ffffff; font-weight:600; font-size:16px; padding:14px 40px; border-radius:50px; text-decoration:none;">
+            Перейти на платформу
+          </a>
+        </td>
+      </tr>
+    </table>
+  `);
 }
 
 /* ================================================================

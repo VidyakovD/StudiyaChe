@@ -57,6 +57,9 @@ export default function CourseChat({ courseId }: { courseId: string }) {
   const [unread, setUnread] = useState(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const lastCountRef = useRef(0);
+  // На первом fetch baseline ещё не выставлен — без этого вся история чата
+  // считалась бы "новыми сообщениями" и счётчик показывал бы N с нуля.
+  const baselineSetRef = useRef(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchMessages = useCallback(async () => {
@@ -66,6 +69,11 @@ export default function CourseChat({ courseId }: { courseId: string }) {
         const data = await res.json();
         const msgs: ChatMessage[] = Array.isArray(data) ? data : data.messages || [];
         setMessages(msgs);
+        if (!baselineSetRef.current) {
+          lastCountRef.current = msgs.length;
+          baselineSetRef.current = true;
+          return;
+        }
         if (!isOpen && msgs.length > lastCountRef.current) {
           setUnread(msgs.length - lastCountRef.current);
         }

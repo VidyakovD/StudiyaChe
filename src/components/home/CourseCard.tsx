@@ -16,6 +16,17 @@ interface CourseCardProps {
   index?: number;
 }
 
+// Детерминированный "рандом" из строки — нужно чтобы SSR и клиент рисовали
+// одинаковую полосу. Math.random() давал hydration mismatch и моргание.
+function hashString(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) / 0xffffffff;
+}
+
 export default function CourseCard({
   id,
   title,
@@ -27,6 +38,9 @@ export default function CourseCard({
   masterclassesCount = 0,
   index = 0,
 }: CourseCardProps) {
+  const seedLeft = hashString(`${id}-left`);
+  const seedWidth = hashString(`${id}-width`);
+  const seedOpacity = hashString(`${id}-opacity`);
   return (
     <motion.a
       href={`/course/${id}`}
@@ -42,13 +56,13 @@ export default function CourseCard({
     >
       <div className="card-glow" />
 
-      {/* Random accent stripe */}
+      {/* Detereministic accent stripe — стабильно между SSR и клиентом */}
       <div
         className="accent-stripe"
         style={{
-          left: `${10 + Math.random() * 20}%`,
-          width: `${30 + Math.random() * 40}%`,
-          opacity: 0.5 + Math.random() * 0.5,
+          left: `${10 + seedLeft * 20}%`,
+          width: `${30 + seedWidth * 40}%`,
+          opacity: 0.5 + seedOpacity * 0.5,
         }}
       />
 

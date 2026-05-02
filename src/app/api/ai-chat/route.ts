@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Agent } from "undici";
+
+export const runtime = "nodejs";
 
 /**
  * Прокси для ИИ чат-бота.
@@ -11,18 +14,43 @@ import { NextRequest, NextResponse } from "next/server";
  *   Сайт → OpenAI напрямую через прокси
  */
 
+// Локальный диспатчер для прокси с самоподписанным сертификатом.
+// НЕ трогает глобальный TLS-валидатор — иначе у платежей и SMTP отвалится защита.
+const insecureProxyAgent = new Agent({ connect: { rejectUnauthorized: false } });
+
 // Fallback system prompt (используется только если n8n не настроен)
 const FALLBACK_SYSTEM_PROMPT = `Ты — ИИ-ассистент обучающей платформы "Студия ЧЕ". Тебя зовут "ЧЕ Ассистент".
 Ты эксперт по видеопроизводству, ИИ-генерации и ИИ для бизнеса.
 Курсы: Premiere Pro (4990₽), After Effects (7990₽), Runway ML (5990₽), Midjourney (6490₽), ChatGPT для бизнеса (8990₽), ИИ-автоматизация (9990₽).
 Разовая оплата, доступ навсегда. Отвечай кратко, на русском, дружелюбно.`;
 
+const MAX_MESSAGES = 20;
+const MAX_MESSAGE_CHARS = 2000;
+
+type ChatMessage = { role: "user" | "assistant"; content: string };
+
+function sanitizeMessages(input: unknown): ChatMessage[] | null {
+  if (!Array.isArray(input)) return null;
+  const cleaned: ChatMessage[] = [];
+  for (const m of input.slice(-MAX_MESSAGES)) {
+    if (!m || typeof m !== "object") return null;
+    const role = (m as { role?: unknown }).role;
+    const content = (m as { content?: unknown }).content;
+    // Никаких system/tool ролей от клиента — только user/assistant.
+    if (role !== "user" && role !== "assistant") return null;
+    if (typeof content !== "string") return null;
+    cleaned.push({ role, content: content.slice(0, MAX_MESSAGE_CHARS) });
+  }
+  return cleaned;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { messages, sessionId, event } = body;
+    const { sessionId, event } = body;
 
-    if (!messages || !Array.isArray(messages)) {
+    const messages = sanitizeMessages(body.messages);
+    if (!messages || messages.length === 0) {
       return NextResponse.json({ error: "Сообщения обязательны" }, { status: 400 });
     }
 
@@ -65,12 +93,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "ИИ сервис не настроен" }, { status: 500 });
     }
 
-    // Allow self-signed SSL on proxy
-    if (process.env.OPENAI_BASE_URL?.includes("8443")) {
-      process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-    }
-
     const baseUrl = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
+    // Прокси на :8443 использует самоподписанный сертификат — отключаем
+    // проверку только для этого fetch через локальный dispatcher.
+    const useInsecureProxy = baseUrl.includes("8443");
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
@@ -86,7 +112,8 @@ export async function POST(req: NextRequest) {
         max_tokens: 300,
         temperature: 0.7,
       }),
-    });
+      ...(useInsecureProxy ? { dispatcher: insecureProxyAgent } : {}),
+    } as RequestInit & { dispatcher?: Agent });
 
     if (!response.ok) {
       console.error("OpenAI error:", await response.text());

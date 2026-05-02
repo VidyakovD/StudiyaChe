@@ -78,77 +78,82 @@ export async function PUT(
   const { lessons, modules, ...courseData } = parsed.data;
 
   try {
-    await prisma.course.update({
-      where: { id },
-      data: courseData,
-    });
-
-    const moduleMap: Record<string, string> = {};
-    await prisma.lesson.updateMany({ where: { courseId: id }, data: { moduleId: null } });
-    await prisma.module.deleteMany({ where: { courseId: id } });
-    if (modules && modules.length > 0) {
-      for (let i = 0; i < modules.length; i++) {
-        const m = modules[i];
-        const created = await prisma.module.create({
-          data: {
-            courseId: id,
-            title: m.title || `Модуль ${i + 1}`,
-            order: i + 1,
-          },
+    // Всё обновление курса — одна транзакция: либо весь редактор сохраняется атомарно,
+    // либо не пишется ничего. Без этого сбой в середине ломал курс и стирал прогресс.
+    await prisma.$transaction(
+      async (tx) => {
+        await tx.course.update({
+          where: { id },
+          data: courseData,
         });
-        moduleMap[`new-${i}`] = created.id;
-        if (m.id) moduleMap[m.id] = created.id;
-      }
-    }
 
-    if (lessons) {
-      // Сохраняем id существующих уроков: к ним привязаны файлы и прогресс.
-      // Delete-then-create сломал бы и то и другое.
-      const oldLessons = await prisma.lesson.findMany({
-        where: { courseId: id },
-        select: { id: true },
-      });
-      const oldIds = new Set(oldLessons.map((l) => l.id));
-      const keptIds = new Set(
-        lessons.map((l) => l.id).filter((x): x is string => !!x && oldIds.has(x))
-      );
-      const toDelete = oldLessons.filter((l) => !keptIds.has(l.id)).map((l) => l.id);
-
-      // Удаляем то, чего нет в новом списке. Прогресс и файлы уйдут каскадом/вручную.
-      if (toDelete.length > 0) {
-        await prisma.lessonProgress.deleteMany({ where: { lessonId: { in: toDelete } } });
-        await prisma.lesson.deleteMany({ where: { id: { in: toDelete } } });
-      }
-
-      // Чтобы не упереться в @@unique([courseId, order]) при перестановке,
-      // сначала уводим оставшиеся уроки во временные отрицательные order.
-      if (keptIds.size > 0) {
-        let tmp = -1;
-        for (const lid of keptIds) {
-          await prisma.lesson.update({ where: { id: lid }, data: { order: tmp-- } });
+        const moduleMap: Record<string, string> = {};
+        await tx.lesson.updateMany({ where: { courseId: id }, data: { moduleId: null } });
+        await tx.module.deleteMany({ where: { courseId: id } });
+        if (modules && modules.length > 0) {
+          for (let i = 0; i < modules.length; i++) {
+            const m = modules[i];
+            const created = await tx.module.create({
+              data: {
+                courseId: id,
+                title: m.title || `Модуль ${i + 1}`,
+                order: i + 1,
+              },
+            });
+            moduleMap[`new-${i}`] = created.id;
+            if (m.id) moduleMap[m.id] = created.id;
+          }
         }
-      }
 
-      // Теперь пишем финальные значения: update для существующих, create для новых.
-      for (let i = 0; i < lessons.length; i++) {
-        const l = lessons[i];
-        const data = {
-          title: l.title,
-          description: l.description || null,
-          videoUrl: l.videoUrl || null,
-          imageUrl: l.imageUrl || null,
-          order: i + 1,
-          links: l.links || null,
-          homework: l.homework || null,
-          moduleId: l.moduleId ? (moduleMap[l.moduleId] || l.moduleId) : null,
-        };
-        if (l.id && oldIds.has(l.id)) {
-          await prisma.lesson.update({ where: { id: l.id }, data });
-        } else {
-          await prisma.lesson.create({ data: { ...data, courseId: id } });
+        if (lessons) {
+          // Сохраняем id существующих уроков: к ним привязаны файлы и прогресс.
+          // Delete-then-create сломал бы и то и другое.
+          const oldLessons = await tx.lesson.findMany({
+            where: { courseId: id },
+            select: { id: true },
+          });
+          const oldIds = new Set(oldLessons.map((l) => l.id));
+          const keptIds = new Set(
+            lessons.map((l) => l.id).filter((x): x is string => !!x && oldIds.has(x))
+          );
+          const toDelete = oldLessons.filter((l) => !keptIds.has(l.id)).map((l) => l.id);
+
+          if (toDelete.length > 0) {
+            await tx.lessonProgress.deleteMany({ where: { lessonId: { in: toDelete } } });
+            await tx.lesson.deleteMany({ where: { id: { in: toDelete } } });
+          }
+
+          // Чтобы не упереться в @@unique([courseId, order]) при перестановке,
+          // сначала уводим оставшиеся уроки во временные отрицательные order.
+          if (keptIds.size > 0) {
+            let tmp = -1;
+            for (const lid of keptIds) {
+              await tx.lesson.update({ where: { id: lid }, data: { order: tmp-- } });
+            }
+          }
+
+          for (let i = 0; i < lessons.length; i++) {
+            const l = lessons[i];
+            const data = {
+              title: l.title,
+              description: l.description || null,
+              videoUrl: l.videoUrl || null,
+              imageUrl: l.imageUrl || null,
+              order: i + 1,
+              links: l.links || null,
+              homework: l.homework || null,
+              moduleId: l.moduleId ? (moduleMap[l.moduleId] || l.moduleId) : null,
+            };
+            if (l.id && oldIds.has(l.id)) {
+              await tx.lesson.update({ where: { id: l.id }, data });
+            } else {
+              await tx.lesson.create({ data: { ...data, courseId: id } });
+            }
+          }
         }
-      }
-    }
+      },
+      { timeout: 30000, maxWait: 5000 }
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -169,16 +174,17 @@ export async function DELETE(
   const { id } = await params;
 
   try {
-    const lessons = await prisma.lesson.findMany({ where: { courseId: id }, select: { id: true } });
-    const lessonIds = lessons.map(l => l.id);
-    if (lessonIds.length > 0) {
-      await prisma.lessonProgress.deleteMany({ where: { lessonId: { in: lessonIds } } });
-    }
+    await prisma.$transaction(async (tx) => {
+      const lessons = await tx.lesson.findMany({ where: { courseId: id }, select: { id: true } });
+      const lessonIds = lessons.map((l) => l.id);
+      if (lessonIds.length > 0) {
+        await tx.lessonProgress.deleteMany({ where: { lessonId: { in: lessonIds } } });
+      }
 
-    await prisma.chatMessage.deleteMany({ where: { courseId: id } });
-    await prisma.purchase.deleteMany({ where: { courseId: id } });
-
-    await prisma.course.delete({ where: { id } });
+      await tx.chatMessage.deleteMany({ where: { courseId: id } });
+      await tx.purchase.deleteMany({ where: { courseId: id } });
+      await tx.course.delete({ where: { id } });
+    });
 
     return NextResponse.json({ success: true });
   } catch (e) {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -44,7 +45,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Платёжная система не настроена" }, { status: 500 });
   }
 
-  const idempotenceKey = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  // Криптостойкий ключ — иначе при коллизии (двойной клик / параллель)
+  // ЮKassa вернёт URL прошлого платежа, и деньги уйдут на чужую покупку.
+  const idempotenceKey = randomUUID();
 
   const paymentData = {
     amount: {
@@ -53,7 +56,8 @@ export async function POST(req: NextRequest) {
     },
     confirmation: {
       type: "redirect",
-      return_url: `${process.env.NEXTAUTH_URL}/api/payment/callback?courseId=${courseId}&userId=${session.user.id}`,
+      // userId не нужен в URL — callback читает его из сессии.
+      return_url: `${process.env.NEXTAUTH_URL}/api/payment/callback?courseId=${encodeURIComponent(courseId)}`,
     },
     capture: true,
     description: `Курс: ${course.title}`,

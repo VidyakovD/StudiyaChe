@@ -57,12 +57,13 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  // Логин/forgot-password/reset: 10 попыток за 15 минут
+  // Логин/forgot-password/reset/resend: 10 попыток за 15 минут
   if (
     path === "/api/auth/callback/credentials" ||
     path === "/api/auth/register" ||
     path === "/api/auth/forgot-password" ||
-    path === "/api/auth/reset-password"
+    path === "/api/auth/reset-password" ||
+    path === "/api/auth/resend-verification"
   ) {
     if (isRateLimited(`auth:${ip}`, 10, 15 * 60 * 1000)) {
       return NextResponse.json(

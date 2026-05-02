@@ -31,10 +31,10 @@ export async function GET() {
       },
     });
 
-    const result = courses
+    const chats = courses
       .map((course) => ({
-        id: course.id,
-        title: course.title,
+        courseId: course.id,
+        courseTitle: course.title,
         lastMessage: course.chatMessages[0]?.text ?? null,
         lastMessageAt: course.chatMessages[0]?.createdAt ?? null,
         messageCount: course._count.chatMessages,
@@ -47,7 +47,7 @@ export async function GET() {
         );
       });
 
-    return NextResponse.json(result);
+    return NextResponse.json({ chats });
   } catch {
     return NextResponse.json(
       { error: "Ошибка сервера" },

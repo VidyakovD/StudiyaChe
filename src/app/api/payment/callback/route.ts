@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 // Пользователь возвращается сюда после оплаты в ЮKassa
@@ -12,30 +14,32 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${baseUrl}/`);
   }
 
-  // Ждём до 10 секунд пока webhook создаст покупку
-  // (webhook обычно приходит быстрее чем пользователь вернётся)
-  let purchased = false;
-  const userId = req.nextUrl.searchParams.get("userId");
+  // userId берём ТОЛЬКО из сессии. Раньше он шёл в URL, что давало
+  // утечку идентификатора и возможность подменить чужой userId.
+  const session = await getServerSession(authOptions);
+  const userId = session?.user?.id;
 
-  if (userId) {
-    for (let i = 0; i < 5; i++) {
-      const existing = await prisma.purchase.findUnique({
-        where: { userId_courseId: { userId, courseId } },
-      });
-      if (existing) {
-        purchased = true;
-        break;
-      }
-      // Ждём 2 секунды перед следующей проверкой
-      await new Promise((r) => setTimeout(r, 2000));
+  if (!userId) {
+    return NextResponse.redirect(`${baseUrl}/auth/login?next=/course/${courseId}`);
+  }
+
+  // Ждём до 10 секунд пока webhook создаст покупку.
+  let purchased = false;
+  for (let i = 0; i < 5; i++) {
+    const existing = await prisma.purchase.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    });
+    if (existing) {
+      purchased = true;
+      break;
     }
+    await new Promise((r) => setTimeout(r, 2000));
   }
 
   if (purchased) {
     return NextResponse.redirect(`${baseUrl}/course/${courseId}/learn`);
   }
 
-  // Если покупка ещё не подтверждена — редирект на страницу курса
-  // (webhook придёт позже и покупка появится)
+  // webhook ещё не пришёл — отправляем на страницу курса
   return NextResponse.redirect(`${baseUrl}/course/${courseId}?payment=processing`);
 }

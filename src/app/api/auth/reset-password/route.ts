@@ -23,7 +23,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Недействительная ссылка для сброса пароля" }, { status: 400 });
     }
 
-    if (user.resetTokenExp && user.resetTokenExp < new Date()) {
+    // resetTokenExp ОБЯЗАН быть выставлен. Если он null — токен битый/легаси,
+    // не принимаем его как валидный. Иначе уязвимость: токен живёт вечно.
+    if (!user.resetTokenExp || user.resetTokenExp < new Date()) {
       return NextResponse.json({ error: "Ссылка для сброса пароля истекла. Запросите новую." }, { status: 400 });
     }
 

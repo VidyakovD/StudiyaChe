@@ -2,12 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { parseBody, z, safeUrlSchema } from "@/lib/validation";
+import { parseBody, z } from "@/lib/validation";
+
+// imageUrl — только наши аплоады /uploads/... Внешние https://-картинки давали
+// бы возможность подсовывать трекинг-пиксели на чужой домен и деанонить читателей.
+const chatImageUrlSchema = z
+  .string()
+  .trim()
+  .max(2048)
+  .refine((v) => v === "" || v.startsWith("/uploads/"), {
+    message: "Допускаются только загруженные на платформу изображения",
+  });
 
 const chatMessageSchema = z
   .object({
     text: z.string().trim().max(4000).optional(),
-    imageUrl: safeUrlSchema.optional().or(z.literal("")),
+    imageUrl: chatImageUrlSchema.optional(),
   })
   .refine((v) => (v.text && v.text.length > 0) || (v.imageUrl && v.imageUrl.length > 0), {
     message: "Текст или изображение обязательны",
@@ -40,9 +50,11 @@ export async function GET(
       );
     }
 
-    const messages = await prisma.chatMessage.findMany({
+    // Берём 100 последних, потом разворачиваем в хронологический порядок.
+    // Раньше брались "первые 100 по asc" — после 100 сообщений новые не показывались.
+    const recent = await prisma.chatMessage.findMany({
       where: { courseId },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: "desc" },
       take: 100,
       include: {
         user: {
@@ -50,6 +62,7 @@ export async function GET(
         },
       },
     });
+    const messages = recent.reverse();
 
     return NextResponse.json(messages);
   } catch {

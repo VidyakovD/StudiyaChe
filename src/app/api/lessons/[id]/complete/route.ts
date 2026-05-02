@@ -17,7 +17,7 @@ export async function POST(
   // Проверяем что пользователь купил курс, к которому принадлежит этот урок
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
-    select: { courseId: true },
+    select: { courseId: true, order: true },
   });
 
   if (!lesson) {
@@ -35,6 +35,27 @@ export async function POST(
 
   if (!purchase) {
     return NextResponse.json({ error: "Курс не куплен" }, { status: 403 });
+  }
+
+  // Последовательное прохождение: все уроки курса с меньшим order должны быть
+  // завершены этим пользователем. Иначе обход через прямой POST минует UI-блокировку.
+  if (lesson.order > 1) {
+    const previousLessonsCount = await prisma.lesson.count({
+      where: { courseId: lesson.courseId, order: { lt: lesson.order } },
+    });
+    const completedPreviousCount = await prisma.lessonProgress.count({
+      where: {
+        userId: session.user.id,
+        completed: true,
+        lesson: { courseId: lesson.courseId, order: { lt: lesson.order } },
+      },
+    });
+    if (completedPreviousCount < previousLessonsCount) {
+      return NextResponse.json(
+        { error: "Сначала завершите предыдущие уроки" },
+        { status: 403 }
+      );
+    }
   }
 
   await prisma.lessonProgress.upsert({

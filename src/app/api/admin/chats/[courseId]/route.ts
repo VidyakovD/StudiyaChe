@@ -15,17 +15,20 @@ export async function GET(
 
     const { courseId } = await params;
 
-    const messages = await prisma.chatMessage.findMany({
+    // Берём последние 500 — старше админу не нужно листать в одном запросе.
+    const recent = await prisma.chatMessage.findMany({
       where: { courseId },
-      orderBy: { createdAt: "asc" },
+      orderBy: { createdAt: "desc" },
+      take: 500,
       include: {
         user: {
           select: { id: true, name: true, nickname: true, avatarUrl: true, role: true },
         },
       },
     });
+    const messages = recent.reverse();
 
-    return NextResponse.json(messages);
+    return NextResponse.json({ messages });
   } catch {
     return NextResponse.json(
       { error: "Ошибка сервера" },
@@ -50,6 +53,14 @@ export async function POST(
     if (!text || typeof text !== "string" || text.trim().length === 0) {
       return NextResponse.json(
         { error: "Текст сообщения обязателен" },
+        { status: 400 }
+      );
+    }
+    // Тот же лимит, что у пользовательского чата — иначе админ-сессия
+    // (или скомпрометированная) могла бы класть мегабайтный текст в БД.
+    if (text.length > 4000) {
+      return NextResponse.json(
+        { error: "Сообщение слишком длинное (макс. 4000 символов)" },
         { status: 400 }
       );
     }

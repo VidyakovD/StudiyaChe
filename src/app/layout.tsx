@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import SessionProvider from "@/components/providers/SessionProvider";
 import PageTransition from "@/components/providers/PageTransition";
 import AiChatBot from "@/components/chat/AiChatBot";
+import CookieNotice from "@/components/layout/CookieNotice";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -52,6 +53,7 @@ export default function RootLayout({
         <SessionProvider>
           <PageTransition>{children}</PageTransition>
           <AiChatBot />
+          <CookieNotice />
         </SessionProvider>
       </body>
     </html>

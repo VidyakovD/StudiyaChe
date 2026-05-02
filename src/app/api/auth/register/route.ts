@@ -43,6 +43,8 @@ export async function POST(req: NextRequest) {
     const hashedPassword = await hash(password, 12);
     const verifyToken = randomUUID();
     const now = new Date();
+    // Срок жизни verify-токена: 24 часа. После — нужен ресенд.
+    const verifyTokenExp = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
     try {
       await prisma.user.create({
@@ -51,6 +53,7 @@ export async function POST(req: NextRequest) {
           email,
           password: hashedPassword,
           verifyToken: hashToken(verifyToken),
+          verifyTokenExp,
           // Фиксируем момент явного согласия — для аудита 152-ФЗ.
           consentToProcessingAt: now,
           subscribedToNewsletter: agreeNewsletter,

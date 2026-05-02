@@ -26,9 +26,24 @@ export async function GET(req: NextRequest) {
       });
     }
 
+    // Срок жизни токена: 24 часа. Легаси-токены без exp — тоже считаем
+    // просроченными (защита-в-глубину).
+    if (!user.verifyTokenExp || user.verifyTokenExp < new Date()) {
+      return new NextResponse(
+        errorPage(
+          baseUrl,
+          "Ссылка устарела. Запросите новое письмо подтверждения на странице входа."
+        ),
+        {
+          status: 200,
+          headers: { "Content-Type": "text/html; charset=utf-8" },
+        }
+      );
+    }
+
     await prisma.user.update({
       where: { id: user.id },
-      data: { emailVerified: true, verifyToken: null },
+      data: { emailVerified: true, verifyToken: null, verifyTokenExp: null },
     });
 
     // Успешная страница с автоматическим редиректом

@@ -28,9 +28,10 @@ export async function POST(req: NextRequest) {
     }
 
     const verifyToken = randomUUID();
+    const verifyTokenExp = new Date(Date.now() + 24 * 60 * 60 * 1000);
     await prisma.user.update({
       where: { id: user.id },
-      data: { verifyToken: hashToken(verifyToken) },
+      data: { verifyToken: hashToken(verifyToken), verifyTokenExp },
     });
 
     sendVerificationEmail(email, verifyToken);

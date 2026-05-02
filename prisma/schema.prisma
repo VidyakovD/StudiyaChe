@@ -27,6 +27,7 @@ model User {
   role          Role      @default(USER)
   emailVerified  Boolean   @default(false)
   verifyToken    String?
+  verifyTokenExp DateTime?
   resetToken     String?
   resetTokenExp  DateTime?
   // Согласие на обработку ПДн — для аудита 152-ФЗ. Заполняется при регистрации,
@@ -123,6 +124,9 @@ model Purchase {
   courseId   String
   course     Course   @relation(fields: [courseId], references: [id])
   amount    Float
+  // Внешний id платежа в ЮKassa. Уникален → даёт строгую идемпотентность
+  // по webhook-у: повторная отработка того же платежа не создаст дубль.
+  paymentId String?  @unique
   createdAt DateTime @default(now())
 
   @@unique([userId, courseId])

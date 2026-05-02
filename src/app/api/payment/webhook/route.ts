@@ -91,11 +91,19 @@ export async function POST(req: NextRequest) {
   }
 
   try {
+    // Идемпотентность №1 — по самому платежу. Если этот paymentId уже
+    // обработан, повторный webhook не должен ничего делать.
+    const byPaymentId = await prisma.purchase.findUnique({ where: { paymentId } });
+    if (byPaymentId) {
+      return NextResponse.json({ ok: true });
+    }
+
+    // Идемпотентность №2 — по (userId, courseId). На случай если у юзера
+    // уже есть этот курс (например, ручная выдача) — не создаём дубль.
     const existing = await prisma.purchase.findUnique({
       where: { userId_courseId: { userId, courseId } },
     });
     if (existing) {
-      // Идемпотентность: повторный webhook на ту же покупку.
       return NextResponse.json({ ok: true });
     }
 
@@ -114,10 +122,11 @@ export async function POST(req: NextRequest) {
 
     try {
       await prisma.purchase.create({
-        data: { userId, courseId, amount: paidAmount },
+        data: { userId, courseId, amount: paidAmount, paymentId },
       });
     } catch (e: unknown) {
-      // P2002 = unique violation, гонка с другим webhook — ок, считаем покупку созданной.
+      // P2002 = unique violation: либо paymentId уже записан, либо
+      // (userId, courseId) — оба случая означают, что покупка уже создана.
       if ((e as { code?: string })?.code === "P2002") {
         return NextResponse.json({ ok: true });
       }

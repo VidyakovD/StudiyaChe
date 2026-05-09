@@ -46,6 +46,44 @@ export function middleware(req: NextRequest) {
   // === Rate limiting на auth эндпоинты ===
   const path = req.nextUrl.pathname;
 
+  // === Agent API (read-only для внешних агентов) ===
+  // Bearer-токен в Authorization, 60 запросов/мин с IP.
+  // Без / неверный токен → 401. Превышение — 429.
+  if (path.startsWith("/api/agent/")) {
+    const expected = process.env.AGENT_API_TOKEN;
+    if (!expected) {
+      return NextResponse.json(
+        { error: "Agent API не настроен" },
+        { status: 503 }
+      );
+    }
+    const auth = req.headers.get("authorization") || "";
+    const provided = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+    // Constant-time comparison: длины могут отличаться, проверяем через
+    // ручной XOR-аккумулятор, чтобы не открывать timing-атакой.
+    let ok = provided.length === expected.length && provided.length > 0;
+    if (provided.length === expected.length) {
+      let diff = 0;
+      for (let i = 0; i < expected.length; i++) {
+        diff |= provided.charCodeAt(i) ^ expected.charCodeAt(i);
+      }
+      ok = diff === 0;
+    }
+    if (!ok) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401, headers: { "WWW-Authenticate": "Bearer" } }
+      );
+    }
+    if (isRateLimited(`agent:${ip}`, 60, 60 * 1000)) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        { status: 429, headers: { "Retry-After": "60" } }
+      );
+    }
+    return res;
+  }
+
   // Регистрация: отдельный жёсткий лимит — 3 аккаунта с IP за час.
   // Защита от массового создания фейковых аккаунтов.
   if (path === "/api/auth/register") {

@@ -55,9 +55,21 @@ export async function POST(req: NextRequest) {
 
     // === РЕЖИМ 1: Через n8n ===
     if (n8nUrl) {
+      // n8n за nginx с CORS-фильтром: server-to-server fetch не шлёт Origin
+      // и n8n отвечает 403 origin_not_allowed. Подкладываем Origin вручную,
+      // используя origin самого webhook-URL — тогда CORS-белый список совпадёт.
+      let n8nOrigin = "";
+      try {
+        n8nOrigin = new URL(n8nUrl).origin;
+      } catch {
+        // битый URL — fetch ниже всё равно упадёт, ловится в общем catch.
+      }
       const n8nResponse = await fetch(n8nUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(n8nOrigin ? { Origin: n8nOrigin } : {}),
+        },
         body: JSON.stringify({
           // Данные для n8n
           sessionId: sessionId || `session_${Date.now()}`,

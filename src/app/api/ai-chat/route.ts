@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Agent } from "undici";
 
 export const runtime = "nodejs";
 
@@ -11,12 +10,10 @@ export const runtime = "nodejs";
  *   n8n сам решает когда диалог окончен и формирует резюме
  *
  * Режим 2 (fallback, если n8n не настроен):
- *   Сайт → OpenAI напрямую через прокси
+ *   Сайт → OpenAI напрямую (без custom TLS-агента — прокси с самоподписанным
+ *   сертификатом больше не поддерживается, чтобы не тащить undici как dep
+ *   и не зависеть от Node 21+).
  */
-
-// Локальный диспатчер для прокси с самоподписанным сертификатом.
-// НЕ трогает глобальный TLS-валидатор — иначе у платежей и SMTP отвалится защита.
-const insecureProxyAgent = new Agent({ connect: { rejectUnauthorized: false } });
 
 // Fallback system prompt (используется только если n8n не настроен)
 const FALLBACK_SYSTEM_PROMPT = `Ты — ИИ-ассистент обучающей платформы "Студия ЧЕ". Тебя зовут "ЧЕ Ассистент".
@@ -94,9 +91,6 @@ export async function POST(req: NextRequest) {
     }
 
     const baseUrl = process.env.OPENAI_BASE_URL || "https://api.openai.com/v1";
-    // Прокси на :8443 использует самоподписанный сертификат — отключаем
-    // проверку только для этого fetch через локальный dispatcher.
-    const useInsecureProxy = baseUrl.includes("8443");
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: {
@@ -112,8 +106,7 @@ export async function POST(req: NextRequest) {
         max_tokens: 300,
         temperature: 0.7,
       }),
-      ...(useInsecureProxy ? { dispatcher: insecureProxyAgent } : {}),
-    } as RequestInit & { dispatcher?: Agent });
+    });
 
     if (!response.ok) {
       console.error("OpenAI error:", await response.text());

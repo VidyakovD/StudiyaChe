@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { agentJson, baseUrl } from "@/lib/agent-api";
+import { agentJson, baseUrl, checkAgentRateLimit } from "@/lib/agent-api";
 
 // GET /api/agent/search?q=...&limit=10
 // Ищет в title/description курсов и в title/description/links/homework уроков.
@@ -8,6 +8,9 @@ import { agentJson, baseUrl } from "@/lib/agent-api";
 // PostgreSQL: используем `contains` с `mode: 'insensitive'` — это ILIKE.
 // Это не fuzzy, но без полнотекстового индекса даёт нужное «найти подстроку».
 export async function GET(req: NextRequest) {
+  const limited = checkAgentRateLimit(req);
+  if (limited) return limited;
+
   const sp = req.nextUrl.searchParams;
   const q = (sp.get("q") || "").trim();
   const limitRaw = Number(sp.get("limit") ?? "10");

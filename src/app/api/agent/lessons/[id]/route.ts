@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { agentJson, baseUrl } from "@/lib/agent-api";
+import { agentJson, baseUrl, checkAgentRateLimit } from "@/lib/agent-api";
 
 // GET /api/agent/lessons/[id]
 // Полный контент урока: текст/markdown, видео, материалы, домашка.
@@ -9,9 +9,12 @@ import { agentJson, baseUrl } from "@/lib/agent-api";
 // для построения ответов пользователям; конечному пользователю прямого
 // доступа нет.
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const limited = checkAgentRateLimit(req);
+  if (limited) return limited;
+
   const { id } = await params;
 
   const lesson = await prisma.lesson.findUnique({

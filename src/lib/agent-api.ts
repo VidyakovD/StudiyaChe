@@ -1,14 +1,44 @@
+import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 // Стандартный JSON-ответ для агентского API: явный charset + private-кэш на минуту.
-export function agentJson<T>(data: T, init: { status?: number } = {}): NextResponse {
+export function agentJson<T>(data: T, init: { status?: number; headers?: Record<string, string> } = {}): NextResponse {
   return NextResponse.json(data, {
     status: init.status ?? 200,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "Cache-Control": "private, max-age=60",
+      ...(init.headers || {}),
     },
   });
+}
+
+// Rate-limit для /api/agent/* живёт ЗДЕСЬ, а не в middleware.
+// Middleware в Next.js работает на Edge — in-memory Map не сохраняется
+// между запросами, и счётчик никогда не растёт. В route handler уже
+// Node-runtime, Map работает как ожидается.
+const agentRateLimit = new Map<string, { count: number; resetAt: number }>();
+const AGENT_LIMIT = 60;
+const AGENT_WINDOW_MS = 60 * 1000;
+
+export function checkAgentRateLimit(req: NextRequest): NextResponse | null {
+  const ip = req.headers.get("x-real-ip")
+    || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+    || "unknown";
+  const now = Date.now();
+  const entry = agentRateLimit.get(ip);
+  if (!entry || now > entry.resetAt) {
+    agentRateLimit.set(ip, { count: 1, resetAt: now + AGENT_WINDOW_MS });
+    return null;
+  }
+  entry.count++;
+  if (entry.count > AGENT_LIMIT) {
+    return agentJson(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": "60" } }
+    );
+  }
+  return null;
 }
 
 // Базовый URL для построения публичных ссылок на курс/урок.

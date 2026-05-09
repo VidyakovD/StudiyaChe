@@ -47,8 +47,9 @@ export function middleware(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
   // === Agent API (read-only для внешних агентов) ===
-  // Bearer-токен в Authorization, 60 запросов/мин с IP.
-  // Без / неверный токен → 401. Превышение — 429.
+  // Bearer-токен в Authorization → 401 при несовпадении.
+  // Rate-limit живёт В route handlers (см. lib/agent-api.ts), потому что
+  // middleware в Next.js работает на Edge: Map между запросами не разделяется.
   if (path.startsWith("/api/agent/")) {
     const expected = process.env.AGENT_API_TOKEN;
     if (!expected) {
@@ -73,12 +74,6 @@ export function middleware(req: NextRequest) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401, headers: { "WWW-Authenticate": "Bearer" } }
-      );
-    }
-    if (isRateLimited(`agent:${ip}`, 60, 60 * 1000)) {
-      return NextResponse.json(
-        { error: "Too many requests" },
-        { status: 429, headers: { "Retry-After": "60" } }
       );
     }
     return res;

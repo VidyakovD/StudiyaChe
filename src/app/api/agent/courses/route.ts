@@ -1,10 +1,14 @@
+import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { agentJson, baseUrl, tagsForCourse } from "@/lib/agent-api";
+import { agentJson, baseUrl, tagsForCourse, checkAgentRateLimit } from "@/lib/agent-api";
 
 // GET /api/agent/courses
 // Все опубликованные курсы. В текущей схеме отдельного флага "published" нет —
 // в каталог идут все Course'ы, поэтому отдаём все.
-export async function GET() {
+export async function GET(req: NextRequest) {
+  const limited = checkAgentRateLimit(req);
+  if (limited) return limited;
+
   const courses = await prisma.course.findMany({
     include: {
       category: { select: { name: true, slug: true } },
